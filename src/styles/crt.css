@@ -1,0 +1,133 @@
+/* CRT Curvature & Phosphor Terminal Styles */
+
+.crt-screen {
+  position: relative;
+  overflow: hidden;
+  background-color: #000000;
+  transition: filter 0.2s ease, transform 0.1s ease;
+}
+
+/* Optional CRT Curvature effect */
+.crt-curvature {
+  box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.9),
+              inset 0 0 40px rgba(0, 0, 0, 0.95);
+  border-radius: 12px;
+}
+
+.crt-curvature::before {
+  content: " ";
+  display: block;
+  position: absolute;
+  top: 0; left: 0; bottom: 0; right: 0;
+  background: radial-gradient(circle at center, transparent 65%, rgba(0, 0, 0, 0.6) 100%);
+  pointer-events: none;
+  z-index: 40;
+}
+
+/* Horizontal Scanline Overlay */
+.scanlines {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 50;
+  background: linear-gradient(
+    rgba(18, 16, 16, 0) 50%,
+    rgba(0, 0, 0, var(--scanline-opacity, 0.25)) 50%
+  );
+  background-size: 100% 4px;
+}
+
+/* Moving Scanline bar */
+.scanline-beam {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 8px;
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0),
+    rgba(255, 255, 255, 0.08) 50%,
+    rgba(255, 255, 255, 0)
+  );
+  pointer-events: none;
+  z-index: 51;
+  animation: scanline-roll 8s linear infinite;
+}
+
+@keyframes scanline-roll {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+
+/* Reactive Phosphor Glow Levels */
+.glow-subtle {
+  text-shadow: 0 0 4px var(--theme-glow);
+}
+
+.glow-medium {
+  text-shadow: 0 0 8px var(--theme-glow), 0 0 16px var(--theme-dim);
+}
+
+.glow-heavy {
+  text-shadow: 0 0 12px var(--theme-glow), 0 0 24px var(--theme-glow), 0 0 36px var(--theme-dim);
+}
+
+/* Chromatic Aberration & Glitch for Disrupt and Overclock */
+.glitch-active {
+  animation: crt-glitch 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) both infinite;
+}
+
+@keyframes crt-glitch {
+  0% {
+    transform: translate(0);
+    filter: drop-shadow(-2px 0 #ff0055) drop-shadow(2px 0 #00ffff);
+  }
+  20% {
+    transform: translate(-2px, 2px);
+    filter: drop-shadow(2px 0 #ff0055) drop-shadow(-2px 0 #00ffff);
+  }
+  40% {
+    transform: translate(-1px, -1px);
+    filter: drop-shadow(-1px 0 #ff0055) drop-shadow(1px 0 #00ffff);
+  }
+  60% {
+    transform: translate(2px, 1px);
+    filter: drop-shadow(1px 0 #ff0055) drop-shadow(-1px 0 #00ffff);
+  }
+  80% {
+    transform: translate(1px, -2px);
+    filter: drop-shadow(-2px 0 #ff0055) drop-shadow(2px 0 #00ffff);
+  }
+  100% {
+    transform: translate(0);
+    filter: drop-shadow(0 0 transparent);
+  }
+}
+
+/* Screen shake */
+.shake-light {
+  animation: shake 0.15s ease-in-out;
+}
+
+.shake-heavy {
+  animation: shake-hard 0.25s ease-in-out;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translate(0, 0); }
+  25% { transform: translate(-3px, 2px); }
+  50% { transform: translate(2px, -2px); }
+  75% { transform: translate(-2px, -1px); }
+}
+
+@keyframes shake-hard {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  20% { transform: translate(-8px, 6px) rotate(-0.5deg); }
+  40% { transform: translate(8px, -6px) rotate(0.5deg); }
+  60% { transform: translate(-6px, 4px) rotate(-0.3deg); }
+  80% { transform: translate(4px, -3px) rotate(0.2deg); }
+}
