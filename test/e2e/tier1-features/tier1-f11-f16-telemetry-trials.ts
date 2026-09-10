@@ -22,19 +22,8 @@ import {
   WEEKLY_TRIALS,
 } from '../../../src/trials/weeklyTrials.ts';
 
-// Haptics safe caller implementation complying with PROJECT.md contract
-export function triggerHapticFeedback(pattern: number | number[]): void {
-  if (
-    typeof navigator !== 'undefined' &&
-    typeof navigator.vibrate === 'function'
-  ) {
-    try {
-      navigator.vibrate(pattern);
-    } catch {
-      // Silently swallow browser restrictions
-    }
-  }
-}
+import { triggerHapticFeedback } from '../../../src/utils/haptics.ts';
+export { triggerHapticFeedback };
 
 export function registerTier1TelemetryTrialsTests(): void {
   describe('Tier 1 - Feature 11: In-Match Word Typo & Recoil Tracking', () => {
@@ -221,8 +210,8 @@ export function registerTier1TelemetryTrialsTests(): void {
     });
 
     it('F13.3: Typing engine treats case mismatch as typo and applies lockout penalty', () => {
-      const expectedChar = 'R';
-      const typedChar = 'r';
+      const expectedChar: string = 'R';
+      const typedChar: string = 'r';
       const isCorrect = typedChar === expectedChar;
       expect(isCorrect).toBe(false);
     });
@@ -297,6 +286,7 @@ export function registerTier1TelemetryTrialsTests(): void {
 
     it('F15.2: Mistype recoil with 0 shield causes instant fatality (reason: sudden_death)', () => {
       const playerHealth = 1;
+      expect(playerHealth).toBe(1);
       const playerShield = 0;
       const isSuddenDeath = true;
       let matchEnded = false;

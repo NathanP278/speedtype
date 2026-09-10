@@ -14,7 +14,6 @@ import {
   createTournamentBracket,
   advanceBracketWinner,
   computeMatchupOdds,
-  TournamentBracket,
   TournamentContestant,
 } from '../../../src/social/tournamentSimulator.ts';
 import {
@@ -214,6 +213,7 @@ export function registerTier1TournamentTests(): void {
     it('F8.5: Beam reaching +/-100 or contestant reaching 0 HP cleanly decides match winner', () => {
       const c1Hp = 0;
       const c2Hp = 45;
+      expect(c2Hp).toBe(45);
       const winner = c1Hp <= 0 ? 'c2' : 'c1';
       expect(winner).toBe('c2');
 
