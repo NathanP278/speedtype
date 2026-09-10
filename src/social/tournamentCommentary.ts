@@ -57,7 +57,7 @@ const INTRO_TEMPLATES: Array<{ speaker: CommentarySpeaker; text: (c: CommentaryC
   {
     speaker: 'ARENA',
     text: c =>
-      `>>> KINETIC DUEL COMMENCED: [${c.contestant1Name}] VS [${c.contestant2Name}]. SYNCHRONIZING SPECTATOR FEED...`,
+      `>>> KINETIC DUEL COMMENCED: [${c.contestant1Name || 'GLADIATOR 1'}] VS [${c.contestant2Name || 'GLADIATOR 2'}]. SYNCHRONIZING SPECTATOR FEED...`,
   },
 ];
 
@@ -139,7 +139,7 @@ const KO_TEMPLATES: Array<{ speaker: CommentarySpeaker; text: (c: CommentaryCont
   {
     speaker: 'ARENA',
     text: c =>
-      `>>> TERMINAL SHUTDOWN CONFIRMED. [${c.winnerName}] claims victory in ${c.matchName || 'the duel'}!`,
+      `>>> TERMINAL SHUTDOWN CONFIRMED. [${c.winnerName || 'VICTOR'}] claims victory in ${c.matchName || 'the duel'}!`,
   },
   {
     speaker: 'CASTER',
@@ -162,7 +162,7 @@ const CHAMPION_TEMPLATES: Array<{ speaker: CommentarySpeaker; text: (c: Commenta
   {
     speaker: 'ARENA',
     text: c =>
-      `>>> 🏆 TOURNAMENT COMPLETE. CROWNING CHAMPION: [${c.winnerName}]. PAYOUTS DISPATCHED TO ALL WINNING BETTORS.`,
+      `>>> 🏆 TOURNAMENT COMPLETE. CROWNING CHAMPION: [${c.winnerName || 'CHAMPION'}]. PAYOUTS DISPATCHED TO ALL WINNING BETTORS.`,
   },
 ];
 

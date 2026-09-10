@@ -17,7 +17,6 @@ export const HAPTIC_PATTERNS = {
  */
 export function triggerHapticFeedback(pattern: number | readonly number[] | number[]): boolean {
   if (
-    typeof window !== 'undefined' &&
     typeof navigator !== 'undefined' &&
     typeof navigator.vibrate === 'function'
   ) {

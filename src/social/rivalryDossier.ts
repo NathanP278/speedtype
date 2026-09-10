@@ -122,7 +122,7 @@ export function recordMatchInDossier(
     const existing = nemesisWords[word] || { attempts: 0, mistakes: 0, deathsCaused: 0 };
     const causedDeath = effectiveFatalWord === word;
     nemesisWords[word] = {
-      attempts: existing.attempts + 1,
+      attempts: existing.attempts + mistakeCount,
       mistakes: existing.mistakes + mistakeCount,
       deathsCaused: causedDeath ? existing.deathsCaused + 1 : existing.deathsCaused,
     };
