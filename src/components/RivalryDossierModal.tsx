@@ -118,15 +118,23 @@ export const RivalryDossierModal: React.FC<RivalryDossierModalProps> = ({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-800/60 bg-black/60">
-                  {nemesisRankings.map(stat => (
-                    <tr key={stat.word} className="hover:bg-zinc-900/40">
-                      <td className="p-2.5 font-bold text-red-400">{stat.word}</td>
-                      <td className="p-2.5 text-zinc-300">{stat.attempts}</td>
-                      <td className="p-2.5 text-amber-400">{stat.mistakes}</td>
-                      <td className="p-2.5 text-zinc-300">{stat.errorRate}%</td>
-                      <td className="p-2.5 text-red-500 font-bold">{stat.deathsCaused} KOs</td>
+                  {nemesisRankings.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="p-4 text-center text-zinc-500 italic">
+                        NO TELEMETRY RECORDED YET. ENGAGE IN COMBAT TO POPULATE WEAKNESS PROFILE.
+                      </td>
                     </tr>
-                  ))}
+                  ) : (
+                    nemesisRankings.map(stat => (
+                      <tr key={stat.word} className="hover:bg-zinc-900/40">
+                        <td className="p-2.5 font-bold text-red-400">{stat.word}</td>
+                        <td className="p-2.5 text-zinc-300">{stat.attempts}</td>
+                        <td className="p-2.5 text-amber-400">{stat.mistakes}</td>
+                        <td className="p-2.5 text-zinc-300">{stat.errorRate}%</td>
+                        <td className="p-2.5 text-red-500 font-bold">{stat.deathsCaused} KOs</td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>

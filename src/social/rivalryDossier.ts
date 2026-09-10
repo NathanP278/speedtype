@@ -85,7 +85,8 @@ export function recordMatchInDossier(
   isWin: boolean,
   playerWpm: number,
   kpEarned: number,
-  failedWords: string[] = []
+  failedWords: string[] = [],
+  fatalWord?: string
 ): DossierData {
   const matches = dossier.lifetimeMatches + 1;
   const wins = isWin ? dossier.wins + 1 : dossier.wins;
@@ -103,14 +104,39 @@ export function recordMatchInDossier(
   };
 
   const nemesisWords = { ...dossier.nemesisWords };
-  failedWords.forEach(word => {
+
+  // Aggregate mistake occurrences per word from failedWords
+  const wordMistakeCounts = new Map<string, number>();
+  for (const word of failedWords) {
+    if (!word) continue;
+    wordMistakeCounts.set(word, (wordMistakeCounts.get(word) || 0) + 1);
+  }
+
+  // Determine the lethal token when player suffers defeat
+  const effectiveFatalWord = !isWin
+    ? (fatalWord || (failedWords.length > 0 ? failedWords[failedWords.length - 1] : undefined))
+    : undefined;
+
+  // Process all words with recorded mistakes without duplicate attempt skew
+  for (const [word, mistakeCount] of wordMistakeCounts.entries()) {
     const existing = nemesisWords[word] || { attempts: 0, mistakes: 0, deathsCaused: 0 };
+    const causedDeath = effectiveFatalWord === word;
     nemesisWords[word] = {
       attempts: existing.attempts + 1,
-      mistakes: existing.mistakes + 1,
-      deathsCaused: isWin ? existing.deathsCaused : existing.deathsCaused + 1,
+      mistakes: existing.mistakes + mistakeCount,
+      deathsCaused: causedDeath ? existing.deathsCaused + 1 : existing.deathsCaused,
     };
-  });
+  }
+
+  // If match was lost and fatalWord had no preceding typos, record its lethal event
+  if (effectiveFatalWord && !wordMistakeCounts.has(effectiveFatalWord)) {
+    const existing = nemesisWords[effectiveFatalWord] || { attempts: 0, mistakes: 0, deathsCaused: 0 };
+    nemesisWords[effectiveFatalWord] = {
+      attempts: existing.attempts + 1,
+      mistakes: existing.mistakes,
+      deathsCaused: existing.deathsCaused + 1,
+    };
+  }
 
   const updated: DossierData = {
     lifetimeMatches: matches,
