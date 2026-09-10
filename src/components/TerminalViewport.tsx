@@ -6,6 +6,7 @@ interface TerminalViewportProps {
   children: React.ReactNode;
   kpBalance: number;
   currentPaletteId: PaletteId;
+  currentWpm?: number;
   onSelectPalette: (paletteId: PaletteId) => void;
   onOpenMarket: () => void;
   onOpenDossier: () => void;
@@ -17,6 +18,7 @@ export const TerminalViewport: React.FC<TerminalViewportProps> = ({
   children,
   kpBalance,
   currentPaletteId,
+  currentWpm = 0,
   onSelectPalette,
   onOpenMarket,
   onOpenDossier,
@@ -31,6 +33,12 @@ export const TerminalViewport: React.FC<TerminalViewportProps> = ({
     const palette = PHOSPHOR_PALETTES[currentPaletteId] || PHOSPHOR_PALETTES.lime;
     applyPaletteToRoot(palette);
   }, [currentPaletteId]);
+
+  // Reactive Phosphor Glow scaling with WPM
+  useEffect(() => {
+    const bloom = Math.max(4, Math.min(24, Math.round(4 + currentWpm / 5.5)));
+    document.documentElement.style.setProperty('--wpm-bloom', `${bloom}px`);
+  }, [currentWpm]);
 
   return (
     <div className="relative w-screen h-screen bg-black text-[var(--theme-text)] overflow-hidden select-none font-mono flex flex-col">
@@ -132,6 +140,8 @@ export const TerminalViewport: React.FC<TerminalViewportProps> = ({
           crtEnabled ? 'crt-screen crt-curvature' : 'crt-screen'
         }`}
       >
+        {crtEnabled && <div className="crt-glass-glare" />}
+
         {scanlinesEnabled && (
           <>
             <div className="scanlines" />

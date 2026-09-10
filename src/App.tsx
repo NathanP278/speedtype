@@ -180,7 +180,7 @@ export function App() {
           key={index}
           className={`inline-block transition-all duration-75 ${
             isTyped
-              ? 'text-[var(--theme-text)] glow-heavy font-bold opacity-100'
+              ? 'text-[var(--theme-text)] glow-wpm font-bold opacity-100'
               : isCurrent
               ? 'text-white border-b-2 border-[var(--theme-text)] animate-pulse glow-subtle scale-110'
               : 'text-zinc-600 opacity-60'
@@ -196,6 +196,7 @@ export function App() {
     <TerminalViewport
       kpBalance={economy.balance}
       currentPaletteId={economy.equipped.palette}
+      currentWpm={typing.currentWpm}
       onSelectPalette={id => economy.equipItem('palette', id)}
       onOpenMarket={() => setMarketOpen(true)}
       onOpenDossier={() => setDossierOpen(true)}
