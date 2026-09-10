@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { GhostRunData, GhostRecorder } from '../social/ghostRecorder.ts';
+import type { GhostRunData } from '../social/ghostRecorder.ts';
+import { GhostRecorder } from '../social/ghostRecorder.ts';
 
 interface GhostDuelSelectorProps {
   isOpen: boolean;

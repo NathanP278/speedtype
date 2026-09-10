@@ -49,6 +49,12 @@ export function App() {
 
   // Active Weekly Trial Modifier
   const [activeTrial, setActiveTrial] = useState<WeeklyTrial | null>(null);
+  const [isWordFlashing, setIsWordFlashing] = useState<boolean>(false);
+  const [revealedWord, setRevealedWord] = useState<string | null>(null);
+  const flashTimerRef = useRef<number | null>(null);
+  const revealTimerRef = useRef<number | null>(null);
+
+
 
   // Canvas Refs
   const debrisCanvasRef = useRef<AsciiDebrisCanvasHandle | null>(null);
@@ -108,7 +114,9 @@ export function App() {
         opponentNameRef.current,
         result.winner === 'player',
         result.playerStats.wpm,
-        totalKp
+        totalKp,
+        result.failedWords || [],
+        result.fatalWord
       )
     );
   }, [activeTrial, economy]);
@@ -121,6 +129,28 @@ export function App() {
     onWordExplode: handleWordExplode,
     onPlayKeystrokeSound: handlePlayKeystrokeSound,
   });
+
+  // Blind Duel: 0.5s initial flash period on new target word
+  useEffect(() => {
+    if (activeTrial?.id === 'blind_duel' && combat.player.activeWord) {
+      setIsWordFlashing(true);
+      if (flashTimerRef.current !== null) {
+        clearTimeout(flashTimerRef.current);
+      }
+      flashTimerRef.current = window.setTimeout(() => {
+        setIsWordFlashing(false);
+        flashTimerRef.current = null;
+      }, 500);
+    } else {
+      setIsWordFlashing(false);
+    }
+
+    return () => {
+      if (flashTimerRef.current !== null) {
+        clearTimeout(flashTimerRef.current);
+      }
+    };
+  }, [activeTrial?.id, combat.player.activeWord?.id]);
 
   // Sync current opponent name for dossier recording
   useEffect(() => {
@@ -177,6 +207,17 @@ export function App() {
     onWordComplete: (word, stats) => {
       combat.handlePlayerWordComplete(word, stats);
       ghostRecorderRef.current.recordWordComplete(word.text);
+
+      if (activeTrial?.id === 'blind_duel') {
+        setRevealedWord(word.text);
+        if (revealTimerRef.current !== null) {
+          clearTimeout(revealTimerRef.current);
+        }
+        revealTimerRef.current = window.setTimeout(() => {
+          setRevealedWord(null);
+          revealTimerRef.current = null;
+        }, 700);
+      }
     },
   });
 
@@ -186,15 +227,21 @@ export function App() {
     typing.resetTypingEngine();
   };
 
-
   // Render character formatting helper
-  const renderWordCharacters = (wordText: string, typedIdx: number, isDisrupted: boolean, isBlind: boolean) => {
+  const renderWordCharacters = (
+    wordText: string,
+    typedIdx: number,
+    isDisrupted: boolean,
+    isBlind: boolean,
+    isFlashing: boolean = false
+  ) => {
     return wordText.split('').map((char, index) => {
       let displayChar = char;
       if (isDisrupted && index >= typedIdx) {
         // Scramble letters if disrupted
         displayChar = String.fromCharCode(33 + (char.charCodeAt(0) + index * 7) % 90);
-      } else if (isBlind && index >= typedIdx) {
+      } else if (isBlind && !isFlashing) {
+        // Blind Duel: masked into bullet points (•) during active typing
         displayChar = '•';
       }
 
@@ -350,6 +397,18 @@ export function App() {
                 )}
               </div>
 
+              {/* Blind Duel Status Indicators */}
+              {activeTrial?.id === 'blind_duel' && isWordFlashing && (
+                <div className="text-[10px] text-purple-300 font-bold bg-purple-950/70 border border-purple-500/50 px-2.5 py-0.5 rounded tracking-wider animate-pulse mb-1">
+                  ⚡ FLASH: MEMORIZE TOKEN (0.5s)
+                </div>
+              )}
+              {activeTrial?.id === 'blind_duel' && revealedWord && (
+                <div className="text-xs font-bold text-green-400 bg-green-950/80 border border-green-500/80 px-3 py-0.5 rounded shadow-lg animate-pulse mb-1 tracking-widest">
+                  ✓ CONFIRMED: {revealedWord}
+                </div>
+              )}
+
               {/* Typed Word Stream */}
               <div className="text-3xl sm:text-4xl font-mono tracking-wider font-bold my-3 px-4 py-2 select-none">
                 {combat.player.activeWord ? (
@@ -357,7 +416,8 @@ export function App() {
                     combat.player.activeWord.text,
                     typing.typedIndex,
                     combat.player.isDisrupted,
-                    activeTrial?.id === 'blind_duel'
+                    activeTrial?.id === 'blind_duel',
+                    isWordFlashing
                   )
                 ) : (
                   <span className="text-zinc-600 animate-pulse">GENERATING TOKEN...</span>

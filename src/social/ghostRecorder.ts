@@ -1,4 +1,4 @@
-import { StanceType } from '../types/combat.ts';
+import type { StanceType } from '../types/combat.ts';
 
 export const STORAGE_KEY_PERSONAL_BEST = 'speedtype_personal_best_ghost_v1';
 export const STORAGE_KEY_LAST_RUN = 'speedtype_last_ghost_v1';

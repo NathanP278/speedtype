@@ -1,5 +1,5 @@
-import { GhostRunData, CompactGhostEvent } from './ghostRecorder.ts';
-import { StanceType } from '../types/combat.ts';
+import type { GhostRunData, CompactGhostEvent } from './ghostRecorder.ts';
+import type { StanceType } from '../types/combat.ts';
 
 export interface GhostPlaybackCallbacks {
   onCharTyped: (char: string, ok: boolean, stance: StanceType) => void;

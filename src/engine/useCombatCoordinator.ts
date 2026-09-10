@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import {
+import type {
   CombatantState,
   StanceType,
   WordTarget,
@@ -11,9 +11,11 @@ import { generateWord } from './dictionary.ts';
 import { useKineticBeam } from './useKineticBeam.ts';
 import { useOverclock } from './useOverclock.ts';
 import { useFinisherDuel } from './useFinisherDuel.ts';
-import { BotSimulator, BotProfile } from './botOpponent.ts';
+import { BotSimulator } from './botOpponent.ts';
+import type { BotProfile } from './botOpponent.ts';
 import { GhostPlaybackEngine } from '../social/ghostPlayer.ts';
-import { GhostRunData } from '../social/ghostRecorder.ts';
+import type { GhostRunData } from '../social/ghostRecorder.ts';
+import { NemesisTelemetryTracker } from './nemesisTelemetry.ts';
 
 interface UseCombatCoordinatorOptions {
   botProfileId?: string;
@@ -84,6 +86,7 @@ export function useCombatCoordinator({
   const botRef = useRef<BotSimulator | null>(null);
   const ghostRef = useRef<GhostPlaybackEngine | null>(null);
   const matchResultRef = useRef<MatchResult | null>(null);
+  const telemetryRef = useRef<NemesisTelemetryTracker>(new NemesisTelemetryTracker());
 
   // Subsystems
   const handleBaselineKnockout = useCallback((winner: 'player' | 'opponent') => {
@@ -168,6 +171,14 @@ export function useCombatCoordinator({
     const winBonus = isPlayerWin ? 250 : 50;
     const totalKpEarned = Math.round(wpmBonus + accBonus + streakBonus + parryBonus + winBonus);
 
+    const fatalWordCandidate = winner === 'opponent'
+      ? (telemetryRef.current.getActiveWord() || (matchStatus === 'finisher' ? finisherState.bossWord : player.activeWord?.text) || undefined)
+      : undefined;
+
+    if (fatalWordCandidate) {
+      telemetryRef.current.recordFatalDefeat(fatalWordCandidate);
+    }
+
     const finalResult: MatchResult = {
       winner,
       reason,
@@ -176,6 +187,8 @@ export function useCombatCoordinator({
       opponentStats: { ...opponent.stats },
       kpEarned: totalKpEarned,
       timestamp: Date.now(),
+      failedWords: telemetryRef.current.getFailedWords(),
+      fatalWord: fatalWordCandidate,
     };
 
     matchResultRef.current = finalResult;
@@ -185,11 +198,12 @@ export function useCombatCoordinator({
     if (onMatchEnd) {
       onMatchEnd(finalResult);
     }
-  }, [matchStartTime, player.stats, opponent.stats, onMatchEnd]);
+  }, [matchStartTime, player.stats, opponent.stats, matchStatus, finisherState.bossWord, player.activeWord?.text, onMatchEnd]);
 
   // Check for Finisher condition (HP < 10%)
   const checkFinisherTrigger = useCallback((pHealth: number, oHealth: number) => {
     if (finisherState.active || matchStatus !== 'in_progress') return;
+    if (trialModifier === '1hp_sudden_death') return; // Gate finisher in 1 HP Sudden Death
 
     if (pHealth > 0 && pHealth <= 10) {
       setMatchStatus('finisher');
@@ -198,7 +212,7 @@ export function useCombatCoordinator({
       setMatchStatus('finisher');
       triggerFinisher('player', 'opponent');
     }
-  }, [finisherState.active, matchStatus, triggerFinisher]);
+  }, [finisherState.active, matchStatus, trialModifier, triggerFinisher]);
 
   // Player Correct Keystroke
   const handlePlayerKeystroke = useCallback((_char: string, streak: number, wpm: number) => {
@@ -238,29 +252,81 @@ export function useCombatCoordinator({
 
   // Player Mistype
   const handlePlayerMistype = useCallback(() => {
-    if (matchStatus !== 'in_progress') return;
+    if (matchStatus !== 'in_progress' && matchStatus !== 'finisher') return;
+
+    const currentWordText =
+      matchStatus === 'finisher'
+        ? finisherState.bossWord
+        : (player.activeWord?.text || telemetryRef.current.getActiveWord() || undefined);
+
+    if (currentWordText) {
+      telemetryRef.current.recordMistype(currentWordText);
+      telemetryRef.current.recordRecoil(currentWordText);
+    }
 
     triggerOverclockTypo();
     applyMistypeRecoil('player');
 
-    setPlayer(prev => ({
-      ...prev,
-      cleanStreak: 0,
-      isOverclocked: false,
-      stats: {
-        ...prev.stats,
-        totalMistakes: prev.stats.totalMistakes + 1,
-      },
-    }));
+    setPlayer(prev => {
+      const updatedMistakes = prev.stats.totalMistakes + 1;
+      if (trialModifier === '1hp_sudden_death') {
+        if (prev.shield > 0) {
+          // Absorption shield absorbs mistype recoil
+          return {
+            ...prev,
+            shield: Math.max(0, prev.shield - 20),
+            cleanStreak: 0,
+            isOverclocked: false,
+            stats: {
+              ...prev.stats,
+              totalMistakes: updatedMistakes,
+            },
+          };
+        } else {
+          // Instant fatality on unshielded mistype recoil
+          endMatch('opponent', 'sudden_death');
+          return {
+            ...prev,
+            health: 0,
+            cleanStreak: 0,
+            isOverclocked: false,
+            stats: {
+              ...prev.stats,
+              totalMistakes: updatedMistakes,
+            },
+          };
+        }
+      }
+
+      return {
+        ...prev,
+        cleanStreak: 0,
+        isOverclocked: false,
+        stats: {
+          ...prev.stats,
+          totalMistakes: updatedMistakes,
+        },
+      };
+    });
 
     if (onPlayKeystrokeSound) onPlayKeystrokeSound(true, 0);
-  }, [matchStatus, triggerOverclockTypo, applyMistypeRecoil, onPlayKeystrokeSound]);
+  }, [
+    matchStatus,
+    trialModifier,
+    finisherState.bossWord,
+    player.activeWord?.text,
+    triggerOverclockTypo,
+    applyMistypeRecoil,
+    endMatch,
+    onPlayKeystrokeSound,
+  ]);
 
   // Player Word Complete
   const handlePlayerWordComplete = useCallback((word: WordTarget, stats: CombatStats) => {
     if (matchStatus !== 'in_progress') return;
 
-    applyWordBurst('player', word.text.length, player.stance, isOverclocked);
+    const pushMultiplier = trialModifier === 'code_syntax' ? 1.5 : 1.0;
+    applyWordBurst('player', word.text.length, player.stance, isOverclocked, pushMultiplier);
 
     // Stance Effects:
     if (player.stance === 'strike') {
@@ -275,7 +341,9 @@ export function useCombatCoordinator({
           remainingDmg -= absorbed;
         }
         const nextHealth = Math.max(0, prev.health - remainingDmg);
-        if (nextHealth === 0) endMatch('player', 'health_depleted_ko');
+        if (nextHealth === 0) {
+          endMatch('player', trialModifier === '1hp_sudden_death' ? 'sudden_death' : 'health_depleted_ko');
+        }
         checkFinisherTrigger(player.health, nextHealth);
         return { ...prev, shield: newShield, health: nextHealth };
       });
@@ -301,6 +369,7 @@ export function useCombatCoordinator({
 
     // Spawn new word for player
     const nextWord = generateWord(player.stance, trialModifier);
+    telemetryRef.current.setActiveWord(nextWord.text);
     setPlayer(prev => ({
       ...prev,
       activeWord: nextWord,
@@ -342,6 +411,8 @@ export function useCombatCoordinator({
     const initialPlayerWord = generateWord('strike', trialModifier);
     const now = Date.now();
     setMatchStartTime(now);
+    telemetryRef.current.reset();
+    telemetryRef.current.setActiveWord(initialPlayerWord.text);
 
     const isGhost = typeof opponentParam === 'object' && opponentParam !== null && 'events' in opponentParam;
 
@@ -361,7 +432,8 @@ export function useCombatCoordinator({
           }
         },
         onWordCompleted: (wordText, stance) => {
-          applyWordBurst('opponent', wordText.length, stance, false);
+          const pushMultiplier = trialModifier === 'code_syntax' ? 1.5 : 1.0;
+          applyWordBurst('opponent', wordText.length, stance, false, pushMultiplier);
 
           if (stance === 'strike') {
             const dmg = 15;
@@ -378,7 +450,9 @@ export function useCombatCoordinator({
               }
 
               const nextHealth = Math.max(0, currentHealth - remainingDmg);
-              if (nextHealth === 0) endMatch('opponent', 'health_depleted_ko');
+              if (nextHealth === 0) {
+                endMatch('opponent', trialModifier === '1hp_sudden_death' ? 'sudden_death' : 'health_depleted_ko');
+              }
               checkFinisherTrigger(nextHealth, opponent.health);
               return { ...prev, shield: currentShield, health: nextHealth };
             });
@@ -477,64 +551,84 @@ export function useCombatCoordinator({
       setMatchStatus('in_progress');
     } else {
       const profileId = opponentParam as string;
-      const bot = new BotSimulator(profileId, {
-        onCharTyped: (_char, isCorrect, stance) => {
-          if (matchStatus === 'finisher') {
-            if (isCorrect) advanceFinisherProgress('opponent');
-            return;
-          }
+      const bot = new BotSimulator(
+        profileId,
+        {
+          onCharTyped: (_char, isCorrect, stance) => {
+            if (matchStatus === 'finisher') {
+              if (isCorrect) advanceFinisherProgress('opponent');
+              return;
+            }
 
-          if (isCorrect) {
-            applyCorrectKeystroke('opponent', stance, false);
-          } else {
-            applyMistypeRecoil('opponent');
-          }
-        },
-        onWordCompleted: word => {
-          applyWordBurst('opponent', word.text.length, bot.getStance(), false);
-
-          if (bot.getStance() === 'strike') {
-            const dmg = word.damage;
-            setPlayer(prev => {
-              // Check player Counter Shield
-              let remainingDmg = dmg;
-              let currentShield = prev.shield;
-              let currentHealth = prev.health;
-
-              if (currentShield > 0) {
-                // Convert 50% damage absorbed to health
-                const absorb = Math.min(currentShield, dmg);
-                currentShield -= absorb;
-                remainingDmg -= absorb;
-                currentHealth = Math.min(prev.maxHealth, currentHealth + Math.round(absorb * 0.5));
+            if (isCorrect) {
+              applyCorrectKeystroke('opponent', stance, false);
+            } else {
+              applyMistypeRecoil('opponent');
+              if (trialModifier === '1hp_sudden_death') {
+                setOpponent(prev => {
+                  if (prev.shield > 0) {
+                    return { ...prev, shield: Math.max(0, prev.shield - 20) };
+                  } else {
+                    endMatch('player', 'sudden_death');
+                    return { ...prev, health: 0 };
+                  }
+                });
               }
+            }
+          },
+          onWordCompleted: word => {
+            const pushMultiplier = trialModifier === 'code_syntax' ? 1.5 : 1.0;
+            applyWordBurst('opponent', word.text.length, bot.getStance(), false, pushMultiplier);
 
-              const nextHealth = Math.max(0, currentHealth - remainingDmg);
-              if (nextHealth === 0) endMatch('opponent', 'health_depleted_ko');
-              checkFinisherTrigger(nextHealth, opponent.health);
-              return { ...prev, shield: currentShield, health: nextHealth };
-            });
-          } else if (bot.getStance() === 'disrupt') {
-            // Disrupt player UI!
-            setPlayer(prev => ({
+            if (bot.getStance() === 'strike') {
+              const dmg = word.damage;
+              setPlayer(prev => {
+                // Check player Counter Shield
+                let remainingDmg = dmg;
+                let currentShield = prev.shield;
+                let currentHealth = prev.health;
+
+                if (currentShield > 0) {
+                  // Convert 50% damage absorbed to health
+                  const absorb = Math.min(currentShield, dmg);
+                  currentShield -= absorb;
+                  remainingDmg -= absorb;
+                  currentHealth = Math.min(prev.maxHealth, currentHealth + Math.round(absorb * 0.5));
+                }
+
+                const nextHealth = Math.max(0, currentHealth - remainingDmg);
+                if (nextHealth === 0) {
+                  endMatch('opponent', trialModifier === '1hp_sudden_death' ? 'sudden_death' : 'health_depleted_ko');
+                }
+                checkFinisherTrigger(nextHealth, opponent.health);
+                return { ...prev, shield: currentShield, health: nextHealth };
+              });
+            } else if (bot.getStance() === 'disrupt') {
+              // Disrupt player UI!
+              setPlayer(prev => ({
+                ...prev,
+                isDisrupted: true,
+                disruptionRemainingMs: 2500,
+              }));
+            }
+
+            if (onWordExplode) {
+              onWordExplode(word.text, window.innerWidth * 0.75, window.innerHeight * 0.45, '#FF3333');
+            }
+          },
+          onStanceChanged: newStance => {
+            setOpponent(prev => ({
               ...prev,
-              isDisrupted: true,
-              disruptionRemainingMs: 2500,
+              stance: newStance,
+              activeWord: bot.getActiveWord(),
             }));
-          }
-
-          if (onWordExplode) {
-            onWordExplode(word.text, window.innerWidth * 0.75, window.innerHeight * 0.45, '#FF3333');
-          }
+          },
+          onRecoilFatality: () => {
+            endMatch('player', 'sudden_death');
+          },
         },
-        onStanceChanged: newStance => {
-          setOpponent(prev => ({
-            ...prev,
-            stance: newStance,
-            activeWord: bot.getActiveWord(),
-          }));
-        },
-      });
+        trialModifier
+      );
 
       botRef.current = bot;
       bot.start();
@@ -641,14 +735,17 @@ export function useCombatCoordinator({
     matchResult,
     startMatch,
     setPlayerStance: (stance: StanceType) => {
+      const nextWord = generateWord(stance, trialModifier);
+      telemetryRef.current.setActiveWord(nextWord.text);
       setPlayer(prev => ({
         ...prev,
         stance,
-        activeWord: generateWord(stance, trialModifier),
+        activeWord: nextWord,
       }));
     },
     handlePlayerKeystroke,
     handlePlayerMistype,
     handlePlayerWordComplete,
+    telemetry: telemetryRef.current,
   };
 }
