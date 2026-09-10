@@ -6,6 +6,7 @@ interface GhostDuelSelectorProps {
   onClose: () => void;
   onSelectGhost: (run: GhostRunData) => void;
   lastPlayerRun?: GhostRunData | null;
+  personalBestRun?: GhostRunData | null;
 }
 
 export const GhostDuelSelector: React.FC<GhostDuelSelectorProps> = ({
@@ -13,6 +14,7 @@ export const GhostDuelSelector: React.FC<GhostDuelSelectorProps> = ({
   onClose,
   onSelectGhost,
   lastPlayerRun,
+  personalBestRun,
 }) => {
   const [importCode, setImportCode] = useState<string>('');
   const [copied, setCopied] = useState<boolean>(false);
@@ -52,32 +54,75 @@ export const GhostDuelSelector: React.FC<GhostDuelSelectorProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="px-2 py-0.5 text-xs border border-zinc-800 text-zinc-400 hover:text-white rounded"
+            className="px-2 py-0.5 text-xs border border-zinc-800 text-zinc-400 hover:text-white rounded transition-colors"
           >
             [CLOSE]
           </button>
         </div>
 
-        {/* Share Personal Ghost Run */}
+        {/* Duel Personal Best */}
         <div className="p-3.5 bg-zinc-900/60 border border-zinc-800 rounded">
-          <h4 className="text-xs font-bold text-[var(--theme-text)] mb-1">
-            EXPORT YOUR LAST RECORDED RUN
+          <h4 className="text-xs font-bold text-amber-400 mb-1">
+            PERSONAL BEST RECORD
           </h4>
           <p className="text-[11px] text-zinc-400 mb-2">
-            Share your exact microsecond keystroke delta string with a friend to challenge them.
+            Challenge your all-time highest WPM recorded duel.
           </p>
-          {lastPlayerRun ? (
-            <div className="flex items-center gap-2">
+          {personalBestRun ? (
+            <div className="flex items-center justify-between gap-2">
               <span className="text-xs text-zinc-300">
-                Run: {lastPlayerRun.wpm} WPM ({lastPlayerRun.accuracy}%)
+                PB: <strong className="text-amber-400">{personalBestRun.wpm} WPM</strong> ({personalBestRun.accuracy}% ACC)
               </span>
               <button
                 type="button"
-                onClick={handleExport}
-                className="px-3 py-1 text-xs border border-[var(--theme-text)] text-[var(--theme-text)] rounded hover:bg-[var(--theme-text)] hover:text-black font-bold transition-colors ml-auto"
+                onClick={() => {
+                  onSelectGhost(personalBestRun);
+                  onClose();
+                }}
+                className="px-3 py-1 text-xs border border-amber-400 text-amber-400 rounded hover:bg-amber-400 hover:text-black font-bold transition-colors"
               >
-                {copied ? '✓ COPIED TO CLIPBOARD!' : 'COPY GHOST CODE'}
+                [DUEL PERSONAL BEST]
               </button>
+            </div>
+          ) : (
+            <span className="text-xs text-zinc-500 italic">
+              No personal best recorded yet. Complete a match to set your record.
+            </span>
+          )}
+        </div>
+
+        {/* Share / Duel Last Run */}
+        <div className="p-3.5 bg-zinc-900/60 border border-zinc-800 rounded">
+          <h4 className="text-xs font-bold text-[var(--theme-text)] mb-1">
+            LAST RECORDED RUN
+          </h4>
+          <p className="text-[11px] text-zinc-400 mb-2">
+            Duel your last match ghost or export your exact microsecond keystroke delta string.
+          </p>
+          {lastPlayerRun ? (
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 justify-between">
+              <span className="text-xs text-zinc-300">
+                Run: <strong className="text-zinc-100">{lastPlayerRun.wpm} WPM</strong> ({lastPlayerRun.accuracy}% ACC)
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    onSelectGhost(lastPlayerRun);
+                    onClose();
+                  }}
+                  className="px-3 py-1 text-xs border border-cyan-400 text-cyan-400 rounded hover:bg-cyan-400 hover:text-black font-bold transition-colors"
+                >
+                  [DUEL LAST RUN]
+                </button>
+                <button
+                  type="button"
+                  onClick={handleExport}
+                  className="px-3 py-1 text-xs border border-[var(--theme-text)] text-[var(--theme-text)] rounded hover:bg-[var(--theme-text)] hover:text-black font-bold transition-colors"
+                >
+                  {copied ? '✓ COPIED TO CLIPBOARD!' : 'COPY GHOST CODE'}
+                </button>
+              </div>
             </div>
           ) : (
             <span className="text-xs text-zinc-500 italic">

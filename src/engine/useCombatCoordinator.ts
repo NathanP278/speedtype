@@ -12,6 +12,8 @@ import { useKineticBeam } from './useKineticBeam.ts';
 import { useOverclock } from './useOverclock.ts';
 import { useFinisherDuel } from './useFinisherDuel.ts';
 import { BotSimulator, BotProfile } from './botOpponent.ts';
+import { GhostPlaybackEngine } from '../social/ghostPlayer.ts';
+import { GhostRunData } from '../social/ghostRecorder.ts';
 
 interface UseCombatCoordinatorOptions {
   botProfileId?: string;
@@ -80,6 +82,7 @@ export function useCombatCoordinator({
   });
 
   const botRef = useRef<BotSimulator | null>(null);
+  const ghostRef = useRef<GhostPlaybackEngine | null>(null);
   const matchResultRef = useRef<MatchResult | null>(null);
 
   // Subsystems
@@ -147,6 +150,11 @@ export function useCombatCoordinator({
 
     if (botRef.current) {
       botRef.current.stop();
+      botRef.current = null;
+    }
+    if (ghostRef.current) {
+      ghostRef.current.stop();
+      ghostRef.current = null;
     }
 
     const duration = Date.now() - (matchStartTime || Date.now());
@@ -315,117 +323,261 @@ export function useCombatCoordinator({
   ]);
 
   // Start match
-  const startMatch = useCallback((profileId: string = botProfileId) => {
+  const startMatch = useCallback((opponentParam: string | GhostRunData = botProfileId) => {
     resetBeam();
     resetOverclock();
     resetFinisher();
     matchResultRef.current = null;
     setMatchResult(null);
 
+    if (botRef.current) {
+      botRef.current.stop();
+      botRef.current = null;
+    }
+    if (ghostRef.current) {
+      ghostRef.current.stop();
+      ghostRef.current = null;
+    }
+
     const initialPlayerWord = generateWord('strike', trialModifier);
     const now = Date.now();
     setMatchStartTime(now);
 
-    const bot = new BotSimulator(profileId, {
-      onCharTyped: (_char, isCorrect, stance) => {
-        if (matchStatus === 'finisher') {
-          if (isCorrect) advanceFinisherProgress('opponent');
-          return;
-        }
+    const isGhost = typeof opponentParam === 'object' && opponentParam !== null && 'events' in opponentParam;
 
-        if (isCorrect) {
-          applyCorrectKeystroke('opponent', stance, false);
-        } else {
-          applyMistypeRecoil('opponent');
-        }
-      },
-      onWordCompleted: word => {
-        applyWordBurst('opponent', word.text.length, bot.getStance(), false);
+    if (isGhost) {
+      const ghostRun = opponentParam as GhostRunData;
+      const ghost = new GhostPlaybackEngine(ghostRun, {
+        onCharTyped: (_char, isCorrect, stance) => {
+          if (matchStatus === 'finisher') {
+            if (isCorrect) advanceFinisherProgress('opponent');
+            return;
+          }
 
-        if (bot.getStance() === 'strike') {
-          const dmg = word.damage;
-          setPlayer(prev => {
-            // Check player Counter Shield
-            let remainingDmg = dmg;
-            let currentShield = prev.shield;
-            let currentHealth = prev.health;
+          if (isCorrect) {
+            applyCorrectKeystroke('opponent', stance, false);
+          } else {
+            applyMistypeRecoil('opponent');
+          }
+        },
+        onWordCompleted: (wordText, stance) => {
+          applyWordBurst('opponent', wordText.length, stance, false);
 
-            if (currentShield > 0) {
-              // Convert 50% damage absorbed to health
-              const absorb = Math.min(currentShield, dmg);
-              currentShield -= absorb;
-              remainingDmg -= absorb;
-              currentHealth = Math.min(prev.maxHealth, currentHealth + Math.round(absorb * 0.5));
-            }
+          if (stance === 'strike') {
+            const dmg = 15;
+            setPlayer(prev => {
+              let remainingDmg = dmg;
+              let currentShield = prev.shield;
+              let currentHealth = prev.health;
 
-            const nextHealth = Math.max(0, currentHealth - remainingDmg);
-            if (nextHealth === 0) endMatch('opponent', 'health_depleted_ko');
-            checkFinisherTrigger(nextHealth, opponent.health);
-            return { ...prev, shield: currentShield, health: nextHealth };
-          });
-        } else if (bot.getStance() === 'disrupt') {
-          // Disrupt player UI!
-          setPlayer(prev => ({
+              if (currentShield > 0) {
+                const absorb = Math.min(currentShield, dmg);
+                currentShield -= absorb;
+                remainingDmg -= absorb;
+                currentHealth = Math.min(prev.maxHealth, currentHealth + Math.round(absorb * 0.5));
+              }
+
+              const nextHealth = Math.max(0, currentHealth - remainingDmg);
+              if (nextHealth === 0) endMatch('opponent', 'health_depleted_ko');
+              checkFinisherTrigger(nextHealth, opponent.health);
+              return { ...prev, shield: currentShield, health: nextHealth };
+            });
+          } else if (stance === 'disrupt') {
+            setPlayer(prev => ({
+              ...prev,
+              isDisrupted: true,
+              disruptionRemainingMs: 2500,
+            }));
+          }
+
+          if (onWordExplode) {
+            onWordExplode(wordText, window.innerWidth * 0.75, window.innerHeight * 0.45, '#FF3333');
+          }
+
+          setOpponent(prev => ({
             ...prev,
-            isDisrupted: true,
-            disruptionRemainingMs: 2500,
+            activeWord: {
+              id: `ghost_word_${Date.now()}`,
+              text: ghost.getActiveWord(),
+              stance: ghost.getStance(),
+              damage: ghost.getStance() === 'strike' ? 15 : ghost.getStance() === 'counter' ? 8 : 12,
+            },
+            stats: {
+              ...prev.stats,
+              wordsCompleted: prev.stats.wordsCompleted + 1,
+            },
           }));
-        }
+        },
+        onStanceChanged: newStance => {
+          setOpponent(prev => ({
+            ...prev,
+            stance: newStance,
+            activeWord: {
+              id: `ghost_word_${Date.now()}`,
+              text: ghost.getActiveWord(),
+              stance: newStance,
+              damage: newStance === 'strike' ? 15 : newStance === 'counter' ? 8 : 12,
+            },
+          }));
+        },
+        onPlaybackComplete: () => {
+          // Playback finished, ghost remains idle
+        },
+      });
 
-        if (onWordExplode) {
-          onWordExplode(word.text, window.innerWidth * 0.75, window.innerHeight * 0.45, '#FF3333');
-        }
-      },
-      onStanceChanged: newStance => {
-        setOpponent(prev => ({
-          ...prev,
-          stance: newStance,
-          activeWord: bot.getActiveWord(),
-        }));
-      },
-    });
+      ghostRef.current = ghost;
+      ghost.start();
 
-    botRef.current = bot;
-    bot.start();
+      const ghostProf = ghost.getProfile();
+      const initialOpponentWord: WordTarget = {
+        id: `ghost_word_${now}`,
+        text: ghost.getActiveWord() || 'SYNCHRONIZING...',
+        stance: ghost.getStance(),
+        damage: ghost.getStance() === 'strike' ? 15 : ghost.getStance() === 'counter' ? 8 : 12,
+      };
 
-    const initialOpponentWord = bot.getActiveWord();
-    const botProf: BotProfile = bot.getProfile();
+      setPlayer({
+        id: 'player',
+        name: 'ROOT_USER',
+        health: trialModifier === '1hp_sudden_death' ? 1 : 100,
+        maxHealth: trialModifier === '1hp_sudden_death' ? 1 : 100,
+        shield: 0,
+        superMeter: 0,
+        stance: 'strike',
+        activeWord: initialPlayerWord,
+        typedText: '',
+        cleanStreak: 0,
+        isOverclocked: false,
+        isDisrupted: false,
+        disruptionRemainingMs: 0,
+        stats: { ...INITIAL_STATS },
+      });
 
-    setPlayer({
-      id: 'player',
-      name: 'ROOT_USER',
-      health: trialModifier === '1hp_sudden_death' ? 1 : 100,
-      maxHealth: trialModifier === '1hp_sudden_death' ? 1 : 100,
-      shield: 0,
-      superMeter: 0,
-      stance: 'strike',
-      activeWord: initialPlayerWord,
-      typedText: '',
-      cleanStreak: 0,
-      isOverclocked: false,
-      isDisrupted: false,
-      disruptionRemainingMs: 0,
-      stats: { ...INITIAL_STATS },
-    });
+      setOpponent({
+        id: 'opponent',
+        name: ghostProf.name,
+        health: trialModifier === '1hp_sudden_death' ? 1 : 100,
+        maxHealth: trialModifier === '1hp_sudden_death' ? 1 : 100,
+        shield: 0,
+        superMeter: 0,
+        stance: ghostProf.preferredStance,
+        activeWord: initialOpponentWord,
+        typedText: '',
+        cleanStreak: 0,
+        isOverclocked: false,
+        isDisrupted: false,
+        disruptionRemainingMs: 0,
+        stats: {
+          ...INITIAL_STATS,
+          wpm: ghostRun.wpm,
+          accuracy: ghostRun.accuracy,
+        },
+      });
 
-    setOpponent({
-      id: 'opponent',
-      name: botProf.name,
-      health: trialModifier === '1hp_sudden_death' ? 1 : 100,
-      maxHealth: trialModifier === '1hp_sudden_death' ? 1 : 100,
-      shield: 0,
-      superMeter: 0,
-      stance: botProf.preferredStance,
-      activeWord: initialOpponentWord,
-      typedText: '',
-      cleanStreak: 0,
-      isOverclocked: false,
-      isDisrupted: false,
-      disruptionRemainingMs: 0,
-      stats: { ...INITIAL_STATS },
-    });
+      setMatchStatus('in_progress');
+    } else {
+      const profileId = opponentParam as string;
+      const bot = new BotSimulator(profileId, {
+        onCharTyped: (_char, isCorrect, stance) => {
+          if (matchStatus === 'finisher') {
+            if (isCorrect) advanceFinisherProgress('opponent');
+            return;
+          }
 
-    setMatchStatus('in_progress');
+          if (isCorrect) {
+            applyCorrectKeystroke('opponent', stance, false);
+          } else {
+            applyMistypeRecoil('opponent');
+          }
+        },
+        onWordCompleted: word => {
+          applyWordBurst('opponent', word.text.length, bot.getStance(), false);
+
+          if (bot.getStance() === 'strike') {
+            const dmg = word.damage;
+            setPlayer(prev => {
+              // Check player Counter Shield
+              let remainingDmg = dmg;
+              let currentShield = prev.shield;
+              let currentHealth = prev.health;
+
+              if (currentShield > 0) {
+                // Convert 50% damage absorbed to health
+                const absorb = Math.min(currentShield, dmg);
+                currentShield -= absorb;
+                remainingDmg -= absorb;
+                currentHealth = Math.min(prev.maxHealth, currentHealth + Math.round(absorb * 0.5));
+              }
+
+              const nextHealth = Math.max(0, currentHealth - remainingDmg);
+              if (nextHealth === 0) endMatch('opponent', 'health_depleted_ko');
+              checkFinisherTrigger(nextHealth, opponent.health);
+              return { ...prev, shield: currentShield, health: nextHealth };
+            });
+          } else if (bot.getStance() === 'disrupt') {
+            // Disrupt player UI!
+            setPlayer(prev => ({
+              ...prev,
+              isDisrupted: true,
+              disruptionRemainingMs: 2500,
+            }));
+          }
+
+          if (onWordExplode) {
+            onWordExplode(word.text, window.innerWidth * 0.75, window.innerHeight * 0.45, '#FF3333');
+          }
+        },
+        onStanceChanged: newStance => {
+          setOpponent(prev => ({
+            ...prev,
+            stance: newStance,
+            activeWord: bot.getActiveWord(),
+          }));
+        },
+      });
+
+      botRef.current = bot;
+      bot.start();
+
+      const initialOpponentWord = bot.getActiveWord();
+      const botProf: BotProfile = bot.getProfile();
+
+      setPlayer({
+        id: 'player',
+        name: 'ROOT_USER',
+        health: trialModifier === '1hp_sudden_death' ? 1 : 100,
+        maxHealth: trialModifier === '1hp_sudden_death' ? 1 : 100,
+        shield: 0,
+        superMeter: 0,
+        stance: 'strike',
+        activeWord: initialPlayerWord,
+        typedText: '',
+        cleanStreak: 0,
+        isOverclocked: false,
+        isDisrupted: false,
+        disruptionRemainingMs: 0,
+        stats: { ...INITIAL_STATS },
+      });
+
+      setOpponent({
+        id: 'opponent',
+        name: botProf.name,
+        health: trialModifier === '1hp_sudden_death' ? 1 : 100,
+        maxHealth: trialModifier === '1hp_sudden_death' ? 1 : 100,
+        shield: 0,
+        superMeter: 0,
+        stance: botProf.preferredStance,
+        activeWord: initialOpponentWord,
+        typedText: '',
+        cleanStreak: 0,
+        isOverclocked: false,
+        isDisrupted: false,
+        disruptionRemainingMs: 0,
+        stats: { ...INITIAL_STATS },
+      });
+
+      setMatchStatus('in_progress');
+    }
   }, [
     botProfileId,
     trialModifier,
@@ -443,11 +595,14 @@ export function useCombatCoordinator({
     onWordExplode,
   ]);
 
-  // Clean up bot on unmount
+  // Clean up bot and ghost on unmount
   useEffect(() => {
     return () => {
       if (botRef.current) {
         botRef.current.stop();
+      }
+      if (ghostRef.current) {
+        ghostRef.current.stop();
       }
     };
   }, []);
