@@ -1,0 +1,18 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --theme-text: #00FF66;
+  --theme-dim: rgba(0, 255, 102, 0.25);
+  --theme-glow: rgba(0, 255, 102, 0.6);
+  --theme-bg-accent: #001a08;
+}
+
+body {
+  background-color: #000000;
+  color: var(--theme-text);
+  font-family: 'IBM Plex Mono', monospace;
+  margin: 0;
+  padding: 0;
+}
