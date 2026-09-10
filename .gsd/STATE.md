@@ -1,8 +1,8 @@
 # SPEEDTYPE PROJECT STATE
 
 ## Current Position
-- **Active Phase**: 1 (Core Combat & Moment-to-Moment Action)
-- **Active Plan**: 1.1 (`01-typing-stance-beam.md`)
+- **Active Phase**: 2 (Sensory Design & OLED Terminal Glitch Aesthetic)
+- **Active Plan**: 2.1 (`01-oled-crt-terminal-glow.md`)
 - **Status**: Ready for execution
 
 ## Architectural Directives
@@ -12,9 +12,9 @@
 - **Sub-Millisecond Input**: Global `keydown` handling bypassing HTML input focus traps.
 
 ## Execution Progress
-- [ ] Phase 1: Core Combat & Moment-to-Moment Action
-  - [ ] Plan 1.1: Core Typing Engine & Stance Triangle
-  - [ ] Plan 1.2: Tug-of-War Kinetic Beam, Overclock & Finisher Word Duel
+- [x] Phase 1: Core Combat & Moment-to-Moment Action
+  - [x] Plan 1.1: Core Typing Engine & Stance Triangle (Commit 748f263)
+  - [x] Plan 1.2: Tug-of-War Kinetic Beam, Overclock & Finisher Word Duel (Commit 748f263)
 - [ ] Phase 2: Sensory Design & OLED Terminal Glitch Aesthetic
   - [ ] Plan 2.1: OLED Terminal, CRT Curvature & Reactive Phosphor Glow
   - [ ] Plan 2.2: Web Audio Soundstages & Canvas ASCII Impact Debris
