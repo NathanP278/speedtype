@@ -52,10 +52,12 @@ export class BotSimulator {
   private typedCharIndex: number = 0;
   private isRunning: boolean = false;
   private timerId: number | null = null;
+  private trialModifier?: string;
 
   private onCharTyped: (char: string, isCorrect: boolean, stance: StanceType) => void;
   private onWordCompleted: (word: WordTarget) => void;
   private onStanceChanged: (newStance: StanceType) => void;
+  private onRecoilFatality?: () => void;
 
   constructor(
     profileId: string = 'shinobi',
@@ -63,14 +65,18 @@ export class BotSimulator {
       onCharTyped: (char: string, isCorrect: boolean, stance: StanceType) => void;
       onWordCompleted: (word: WordTarget) => void;
       onStanceChanged: (newStance: StanceType) => void;
-    }
+      onRecoilFatality?: () => void;
+    },
+    trialModifier?: string
   ) {
     this.profile = BOT_ARCHETYPES[profileId] || BOT_ARCHETYPES.shinobi;
     this.currentStance = this.profile.preferredStance;
-    this.currentWord = generateWord(this.currentStance);
+    this.trialModifier = trialModifier;
+    this.currentWord = generateWord(this.currentStance, this.trialModifier);
     this.onCharTyped = callbacks.onCharTyped;
     this.onWordCompleted = callbacks.onWordCompleted;
     this.onStanceChanged = callbacks.onStanceChanged;
+    this.onRecoilFatality = callbacks.onRecoilFatality;
   }
 
   public start() {
@@ -136,8 +142,17 @@ export class BotSimulator {
           this.onStanceChanged(this.currentStance);
         }
 
-        this.currentWord = generateWord(this.currentStance);
+        this.currentWord = generateWord(this.currentStance, this.trialModifier);
         this.typedCharIndex = 0;
+      }
+    } else {
+      // 1 HP Sudden Death: bot recoil fatality on unshielded mistype
+      if (this.trialModifier === '1hp_sudden_death') {
+        if (this.onRecoilFatality) {
+          this.onRecoilFatality();
+          this.stop();
+          return;
+        }
       }
     }
 

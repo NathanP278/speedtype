@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 import { StanceType, BeamState } from '../types/combat.ts';
+import { triggerHapticFeedback, HAPTIC_PATTERNS } from '../utils/haptics.ts';
 
 interface UseKineticBeamOptions {
   onBaselineKnockout?: (winner: 'player' | 'opponent') => void;
@@ -24,9 +25,11 @@ export function useKineticBeam({ onBaselineKnockout }: UseKineticBeamOptions = {
 
       if (newPos >= 100) {
         knockoutTriggeredRef.current = true;
+        triggerHapticFeedback(HAPTIC_PATTERNS.BASELINE_IMPACT);
         if (onBaselineKnockout) onBaselineKnockout('player');
       } else if (newPos <= -100) {
         knockoutTriggeredRef.current = true;
+        triggerHapticFeedback(HAPTIC_PATTERNS.BASELINE_IMPACT);
         if (onBaselineKnockout) onBaselineKnockout('opponent');
       }
     },
@@ -59,8 +62,8 @@ export function useKineticBeam({ onBaselineKnockout }: UseKineticBeamOptions = {
   );
 
   const applyWordBurst = useCallback(
-    (source: 'player' | 'opponent', wordLength: number, stance: StanceType, isOverclocked: boolean) => {
-      let burstAmount = 8.0 + wordLength * 1.5;
+    (source: 'player' | 'opponent', wordLength: number, stance: StanceType, isOverclocked: boolean, pushMultiplier: number = 1.0) => {
+      let burstAmount = (8.0 + wordLength * 1.5) * pushMultiplier;
       if (stance === 'strike') burstAmount *= 1.8;
       if (isOverclocked) burstAmount *= 2.0;
 

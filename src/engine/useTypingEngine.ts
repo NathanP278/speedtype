@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { WordTarget, CombatStats, KeystrokeLog, StanceType } from '../types/combat.ts';
+import { triggerHapticFeedback, HAPTIC_PATTERNS } from '../utils/haptics.ts';
 
 interface UseTypingEngineOptions {
   activeWord: WordTarget | null;
@@ -133,6 +134,14 @@ export function useTypingEngine({
       setTotalMistakes(prev => prev + 1);
       setCleanStreak(0);
 
+      // Blind Duel rule: mistype immediately resets the current masked token
+      if (isBlind) {
+        setTypedIndex(0);
+      }
+
+      // Sensory feedback: 40ms haptic vibration on mistype
+      triggerHapticFeedback(HAPTIC_PATTERNS.MISTYPE);
+
       if (onMistype) {
         onMistype(e.key, expectedChar);
       }
@@ -149,6 +158,7 @@ export function useTypingEngine({
     currentWpm,
     peakWpm,
     activeStance,
+    isBlind,
     onCorrectChar,
     onMistype,
     onWordComplete,
@@ -180,6 +190,9 @@ export function useTypingEngine({
 
   return {
     typedIndex,
+    typedText: isBlind
+      ? '•'.repeat(typedIndex)
+      : (activeWord ? activeWord.text.slice(0, typedIndex) : ''),
     cleanStreak,
     longestStreak,
     totalKeystrokes,

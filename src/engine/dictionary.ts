@@ -85,18 +85,58 @@ const BOSS_WORDS: string[] = [
   'CHARACTERISTIC'
 ];
 
-const CODE_SYNTAX_WORDS: string[] = [
+export const CODE_SYNTAX_WORDS: string[] = [
+  // C++ Tokens
   'std::unique_ptr<T>',
-  'fn main() -> Result<()>',
-  'export default async',
   'reinterpret_cast<T*>',
+  'template <typename T>',
+  'dynamic_cast<Base*>',
+  'std::vector<std::string>',
+  'std::make_shared<Node>()',
+  'const auto& [key, val]',
+  'static_cast<uint32_t>',
+  'std::move(resource)',
+  'constexpr double PI = 3.14159;',
+  '#include <type_traits>',
+  'std::atomic<bool> flag{false};',
+  'namespace cyber::engine',
+  'auto&& [first, second]',
+  'std::lock_guard<std::mutex>',
+
+  // Rust Tokens
+  'fn main() -> Result<()>',
   'impl<T> From<U> for T',
+  'Arc::new(Mutex::new(data))',
+  'pub async fn execute(&mut self)',
+  'let ref mut buffer = vec![0u8; 1024];',
+  '#[derive(Debug, Clone, PartialEq)]',
+  'Option<Box<dyn Error + Send + Sync>>',
+  'use std::sync::atomic::Ordering;',
+  'unsafe { *ptr.offset(offset) }',
+  'impl Iterator for Scanner',
+  'tokio::spawn(async move {})',
+  '&\'a mut [u8]',
+  'match res { Ok(v) => v, Err(_) => panic!() }',
+  'pub const MAX_PACKET_SIZE: usize = 4096;',
+
+  // TypeScript Tokens
+  'export default async',
   'Promise.allSettled()',
   'git commit -m "init"',
   'interface Combatant<T>',
   'Array.from({length:32})',
   'useCallback(fn, [deps])',
-  'process.env.NODE_ENV'
+  'process.env.NODE_ENV',
+  'type DeepPartial<T> = { [P in keyof T]?: DeepPartial<T[P]> };',
+  'const [state, dispatch] = useReducer(reducer, init);',
+  'Record<string, unknown>',
+  'export type Stance = "strike" | "counter" | "disrupt";',
+  'import type { FC, ReactNode } from "react";',
+  'as unknown as Record<string, never>',
+  'Object.freeze({ ...config })',
+  'const res = await fetch(url, { method: "POST" });',
+  'type Nullable<T> = T | null | undefined;',
+  'export const handler = async (req: Request): Promise<Response> => {'
 ];
 
 export function generateWord(stance: StanceType, modifier?: string): WordTarget {

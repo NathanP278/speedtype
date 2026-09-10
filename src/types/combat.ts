@@ -88,4 +88,6 @@ export interface MatchResult {
   kpEarned: number;
   timestamp: number;
   koSignatureEquipped?: string;
+  failedWords?: string[];
+  fatalWord?: string;
 }
