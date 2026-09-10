@@ -1,8 +1,8 @@
 # SPEEDTYPE PROJECT STATE
 
 ## Current Position
-- **Active Phase**: 3 (Progression, Economy & Cosmetic Flexes)
-- **Active Plan**: 3.1 (`01-kinetic-points-black-market.md`)
+- **Active Phase**: 4 (Competitive Ladders & Social Arena)
+- **Active Plan**: 4.1 (`01-ghost-duels-rivalry-dossier.md`)
 - **Status**: Ready for execution
 
 ## Architectural Directives
@@ -18,9 +18,9 @@
 - [x] Phase 2: Sensory Design & OLED Terminal Glitch Aesthetic
   - [x] Plan 2.1: OLED Terminal, CRT Curvature & Reactive Phosphor Glow (Commit 0911207)
   - [x] Plan 2.2: Web Audio Soundstages & Canvas ASCII Impact Debris (Commit 0911207)
-- [ ] Phase 3: Progression, Economy & Cosmetic Flexes
-  - [ ] Plan 3.1: Kinetic Points (KP) Economy & The Black Market
-  - [ ] Plan 3.2: Typing Trails & ASCII KO Signatures
+- [x] Phase 3: Progression, Economy & Cosmetic Flexes
+  - [x] Plan 3.1: Kinetic Points (KP) Economy & The Black Market (Commit 3c0e71a)
+  - [x] Plan 3.2: Typing Trails & ASCII KO Signatures (Commit 3c0e71a)
 - [ ] Phase 4: Competitive Ladders & Social Arena
   - [ ] Plan 4.1: Asynchronous Ghost Duels & The Rivalry Dossier
   - [ ] Plan 4.2: Tournament Lounge, Spectator Wagering & Weekly Trials
