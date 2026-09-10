@@ -15,7 +15,14 @@ import { useTypingEngine } from './engine/useTypingEngine.ts';
 import { useStanceManager } from './engine/useStanceManager.ts';
 import { useEconomy } from './economy/useEconomy.ts';
 import { loadDossier, recordMatchInDossier, DossierData } from './social/rivalryDossier.ts';
-import { GhostRunData, GhostRecorder } from './social/ghostRecorder.ts';
+import {
+  GhostRunData,
+  GhostRecorder,
+  savePersonalBest,
+  getPersonalBest,
+  saveLastRun,
+  getLastRun,
+} from './social/ghostRecorder.ts';
 import { soundEngine } from './audio/soundEngine.ts';
 import { STANCE_CONFIGS } from './engine/dictionary.ts';
 import { WeeklyTrial } from './trials/weeklyTrials.ts';
@@ -33,9 +40,12 @@ export function App() {
   const [trialsOpen, setTrialsOpen] = useState<boolean>(false);
   const [ghostOpen, setGhostOpen] = useState<boolean>(false);
 
-  // Ghost Recorder
+  // Ghost Recorder & Persistence
   const ghostRecorderRef = useRef<GhostRecorder>(new GhostRecorder());
-  const [lastPlayerGhost, setLastPlayerGhost] = useState<GhostRunData | null>(null);
+  const [lastPlayerGhost, setLastPlayerGhost] = useState<GhostRunData | null>(() => getLastRun());
+  const [personalBestGhost, setPersonalBestGhost] = useState<GhostRunData | null>(() => getPersonalBest());
+  const lastOpponentRef = useRef<string | GhostRunData>('shinobi');
+  const opponentNameRef = useRef<string>('Shinobi-X');
 
   // Active Weekly Trial Modifier
   const [activeTrial, setActiveTrial] = useState<WeeklyTrial | null>(null);
@@ -74,7 +84,15 @@ export function App() {
       result.playerStats.wpm,
       result.playerStats.accuracy
     );
-    if (ghost) setLastPlayerGhost(ghost);
+    if (ghost) {
+      setLastPlayerGhost(ghost);
+      saveLastRun(ghost);
+      const currentPb = getPersonalBest();
+      if (!currentPb || ghost.wpm > currentPb.wpm) {
+        setPersonalBestGhost(ghost);
+        savePersonalBest(ghost);
+      }
+    }
 
     // Award KP
     let totalKp = result.kpEarned;
@@ -87,7 +105,7 @@ export function App() {
     setDossier(prev =>
       recordMatchInDossier(
         prev,
-        'Shinobi-X',
+        opponentNameRef.current,
         result.winner === 'player',
         result.playerStats.wpm,
         totalKp
@@ -103,6 +121,13 @@ export function App() {
     onWordExplode: handleWordExplode,
     onPlayKeystrokeSound: handlePlayKeystrokeSound,
   });
+
+  // Sync current opponent name for dossier recording
+  useEffect(() => {
+    if (combat.opponent.name) {
+      opponentNameRef.current = combat.opponent.name;
+    }
+  }, [combat.opponent.name]);
 
   // Sync stance changes into combat engine
   useEffect(() => {
@@ -151,12 +176,13 @@ export function App() {
     },
     onWordComplete: (word, stats) => {
       combat.handlePlayerWordComplete(word, stats);
+      ghostRecorderRef.current.recordWordComplete(word.text);
     },
   });
 
   const startNewMatch = () => {
     ghostRecorderRef.current.start();
-    combat.startMatch('shinobi');
+    combat.startMatch(lastOpponentRef.current);
     typing.resetTypingEngine();
   };
 
@@ -355,7 +381,9 @@ export function App() {
             >
               <div className="flex items-center justify-between w-full mb-3 text-xs">
                 <span className="font-bold text-red-400 text-[10px] uppercase">
-                  RIVAL TARGET // {combat.opponent.stance.toUpperCase()}
+                  {combat.opponent.name.includes('[GHOST]')
+                    ? `${combat.opponent.name} // ${combat.opponent.stance.toUpperCase()}`
+                    : `RIVAL TARGET // ${combat.opponent.stance.toUpperCase()}`}
                 </span>
                 {combat.opponent.isDisrupted && (
                   <span className="text-purple-400 font-bold text-[11px] animate-pulse">
@@ -370,7 +398,10 @@ export function App() {
               </div>
 
               <div className="flex justify-between w-full text-[11px] text-zinc-500 mt-2">
-                <span>BOT ARCHETYPE: <strong className="text-zinc-300">SHINOBI-X</strong></span>
+                <span>
+                  {combat.opponent.name.includes('[GHOST]') ? 'CHALLENGER: ' : 'BOT ARCHETYPE: '}
+                  <strong className="text-zinc-300">{combat.opponent.name.toUpperCase()}</strong>
+                </span>
                 <span>STATUS: <strong className="text-red-400">ENGAGED</strong></span>
               </div>
             </div>
@@ -420,9 +451,12 @@ export function App() {
         isOpen={ghostOpen}
         onClose={() => setGhostOpen(false)}
         lastPlayerRun={lastPlayerGhost}
+        personalBestRun={personalBestGhost}
         onSelectGhost={ghost => {
+          lastOpponentRef.current = ghost;
           ghostRecorderRef.current.start();
-          combat.startMatch(ghost.playerName);
+          combat.startMatch(ghost);
+          typing.resetTypingEngine();
         }}
       />
     </TerminalViewport>
