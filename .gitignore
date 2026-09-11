@@ -10,3 +10,6 @@ dist-ssr
 *.sln
 *.sw?
 .agents
+.env
+.env.*
+!.env.example
