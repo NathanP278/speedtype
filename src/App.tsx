@@ -10,7 +10,9 @@ import { TournamentLounge } from './components/TournamentLounge.tsx';
 import { WeeklyTrialModal } from './components/WeeklyTrialModal.tsx';
 import { GhostDuelSelector } from './components/GhostDuelSelector.tsx';
 import { ProfileSetupModal } from './components/ProfileSetupModal.tsx';
+import { LeaderboardModal } from './components/LeaderboardModal.tsx';
 import { useProfile } from './profile/useProfile.ts';
+import { submitLeaderboardEntry } from './profile/leaderboard.ts';
 import { useEconomy } from './economy/useEconomy.ts';
 import { loadDossier, recordMatchInDossier, DossierData } from './social/rivalryDossier.ts';
 import {
@@ -53,6 +55,7 @@ export function App() {
   const [tournamentOpen, setTournamentOpen] = useState<boolean>(false);
   const [trialsOpen, setTrialsOpen] = useState<boolean>(false);
   const [ghostOpen, setGhostOpen] = useState<boolean>(false);
+  const [leaderboardOpen, setLeaderboardOpen] = useState<boolean>(false);
 
   // Ghost runs
   const [lastPlayerGhost, setLastPlayerGhost] = useState<GhostRunData | null>(() => getLastRun());
@@ -60,7 +63,7 @@ export function App() {
   const [activeTrial, setActiveTrial] = useState<WeeklyTrial | null>(null);
 
   const isAnyModalOpen =
-    menuOpen || marketOpen || dossierOpen || tournamentOpen || trialsOpen || ghostOpen;
+    menuOpen || marketOpen || dossierOpen || tournamentOpen || trialsOpen || ghostOpen || leaderboardOpen;
 
   // Pure 1v1 Adaptive Duel Engine
   const duel = useSimpleDuel({
@@ -88,6 +91,16 @@ export function App() {
       }
       const earnedKp = isWin ? Math.round(playerWpm * 1.5) : Math.round(playerWpm * 0.5);
       economy.awardKp(earnedKp);
+
+      // Submit to leaderboard
+      submitLeaderboardEntry({
+        username: profile!.username,
+        avatar: profile!.avatar,
+        netWpm: playerWpm,
+        accuracy: duel.playerStats.accuracy,
+        difficulty,
+        timestamp: Date.now(),
+      });
 
       setDossier((prev) =>
         recordMatchInDossier(
@@ -193,6 +206,7 @@ export function App() {
         onOpenDossier={() => setDossierOpen(true)}
         onOpenTrials={() => setTrialsOpen(true)}
         onOpenMarket={() => setMarketOpen(true)}
+        onOpenLeaderboard={() => { setMenuOpen(false); setLeaderboardOpen(true); }}
         crtEnabled={crtEnabled}
         onToggleCrt={() => setCrtEnabled(!crtEnabled)}
         scanlinesEnabled={scanlinesEnabled}
@@ -245,6 +259,12 @@ export function App() {
             savePersonalBest(ghost);
           }
         }}
+      />
+
+      <LeaderboardModal
+        isOpen={leaderboardOpen}
+        onClose={() => setLeaderboardOpen(false)}
+        username={profile.username}
       />
     </TerminalViewport>
   );

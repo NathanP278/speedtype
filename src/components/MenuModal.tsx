@@ -8,6 +8,7 @@ interface MenuModalProps {
   onOpenDossier: () => void;
   onOpenTrials: () => void;
   onOpenMarket: () => void;
+  onOpenLeaderboard: () => void;
   crtEnabled: boolean;
   onToggleCrt: () => void;
   scanlinesEnabled: boolean;
@@ -23,6 +24,7 @@ export const MenuModal: React.FC<MenuModalProps> = ({
   onOpenDossier,
   onOpenTrials,
   onOpenMarket,
+  onOpenLeaderboard,
   crtEnabled,
   onToggleCrt,
   scanlinesEnabled,
@@ -119,6 +121,19 @@ export const MenuModal: React.FC<MenuModalProps> = ({
             </span>
             <span className="text-[11px] text-zinc-400 leading-tight">
               Hardcore modifiers: Code Syntax, Blind Duel, and 1 HP Sudden Death.
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={onOpenLeaderboard}
+            className="flex flex-col text-left p-3.5 bg-zinc-900/60 hover:bg-zinc-900 border border-zinc-800 hover:border-yellow-500/60 rounded-lg transition-all group"
+          >
+            <span className="text-xs font-bold text-yellow-400 group-hover:text-yellow-300 mb-1 flex items-center gap-1.5">
+              <span>📊</span> LEADERBOARD
+            </span>
+            <span className="text-[11px] text-zinc-400 leading-tight">
+              Top typists ranked by Net WPM on this device.
             </span>
           </button>
 
