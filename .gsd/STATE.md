@@ -34,9 +34,14 @@
   - [x] Plan 11.1: Supabase client, SQL schema, auth types, useAuth hook (Commit 02d8598)
   - [x] Plan 11.2: AuthModal dual-tab, Google OAuth, App gate & sign-out (Commit 1ce7147)
   - [x] Plan 11.3: Cloud Leaderboard service, difficulty filters & account badges (Commit adc6170)
+- [x] Phase 12: Google-Exclusive Auth & Interactive Onboarding Wizard
+  - [x] Plan 12.1: Combat telemetry types, Supabase schema extensions, updateProfile in useAuth
+  - [x] Plan 12.2: Rewrite AuthModal into 5-stage cyberpunk onboarding wizard with node timeline
+  - [x] Plan 12.3: TerminalViewport pilot identity with call-sign & switch hardware display (Commit a0b9ee6)
 
 ## Verification Evidence
 - `npx tsc --noEmit`: Code 0 (0 errors)
-- `npm run build`: Vite v6.4.3 production bundle built in 4.69s (dist/assets/index-Dnmxyhy3.js 594.29 kB, index-CsQG8xuo.css 43.21 kB)
+- `npm run build`: Vite v6.4.3 production bundle built in 48.56s (dist/assets/index-BdHxLhoQ.js 608.02 kB, index-Db5RLTo-.css 45.34 kB)
 - GitHub Remote: Synchronized with origin/master
+
 
