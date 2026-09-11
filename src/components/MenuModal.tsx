@@ -9,6 +9,7 @@ interface MenuModalProps {
   onOpenTrials: () => void;
   onOpenMarket: () => void;
   onOpenLeaderboard: () => void;
+  onOpenChallenge: () => void;
   crtEnabled: boolean;
   onToggleCrt: () => void;
   scanlinesEnabled: boolean;
@@ -25,6 +26,7 @@ export const MenuModal: React.FC<MenuModalProps> = ({
   onOpenTrials,
   onOpenMarket,
   onOpenLeaderboard,
+  onOpenChallenge,
   crtEnabled,
   onToggleCrt,
   scanlinesEnabled,
@@ -134,6 +136,19 @@ export const MenuModal: React.FC<MenuModalProps> = ({
             </span>
             <span className="text-[11px] text-zinc-400 leading-tight">
               Top typists ranked by Net WPM on this device.
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={onOpenChallenge}
+            className="flex flex-col text-left p-3.5 bg-zinc-900/60 hover:bg-zinc-900 border border-zinc-800 hover:border-pink-500/60 rounded-lg transition-all group"
+          >
+            <span className="text-xs font-bold text-pink-400 group-hover:text-pink-300 mb-1 flex items-center gap-1.5">
+              <span>⚔️</span> 1v1 CHALLENGE
+            </span>
+            <span className="text-[11px] text-zinc-400 leading-tight">
+              Generate & accept asynchronous friend race challenge codes.
             </span>
           </button>
 

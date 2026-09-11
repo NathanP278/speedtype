@@ -11,6 +11,8 @@ import { WeeklyTrialModal } from './components/WeeklyTrialModal.tsx';
 import { GhostDuelSelector } from './components/GhostDuelSelector.tsx';
 import { ProfileSetupModal } from './components/ProfileSetupModal.tsx';
 import { LeaderboardModal } from './components/LeaderboardModal.tsx';
+import { ChallengeModal } from './components/ChallengeModal.tsx';
+import { ChallengeGhostRunner } from './social/challengeCode.ts';
 import { useProfile } from './profile/useProfile.ts';
 import { submitLeaderboardEntry } from './profile/leaderboard.ts';
 import { useEconomy } from './economy/useEconomy.ts';
@@ -56,6 +58,7 @@ export function App() {
   const [trialsOpen, setTrialsOpen] = useState<boolean>(false);
   const [ghostOpen, setGhostOpen] = useState<boolean>(false);
   const [leaderboardOpen, setLeaderboardOpen] = useState<boolean>(false);
+  const [challengeOpen, setChallengeOpen] = useState<boolean>(false);
 
   // Ghost runs
   const [lastPlayerGhost, setLastPlayerGhost] = useState<GhostRunData | null>(() => getLastRun());
@@ -63,7 +66,14 @@ export function App() {
   const [activeTrial, setActiveTrial] = useState<WeeklyTrial | null>(null);
 
   const isAnyModalOpen =
-    menuOpen || marketOpen || dossierOpen || tournamentOpen || trialsOpen || ghostOpen || leaderboardOpen;
+    menuOpen ||
+    marketOpen ||
+    dossierOpen ||
+    tournamentOpen ||
+    trialsOpen ||
+    ghostOpen ||
+    leaderboardOpen ||
+    challengeOpen;
 
   // Pure 1v1 Adaptive Duel Engine
   const duel = useSimpleDuel({
@@ -114,7 +124,19 @@ export function App() {
         )
       );
     },
-    [duel.rivalStats.name, economy]
+    [duel.rivalStats.name, economy, profile, difficulty, duel.playerStats.accuracy]
+  );
+
+  const handleAcceptChallenge = useCallback(
+    (ghost: ChallengeGhostRunner) => {
+      duel.startCustomMatch(
+        ghost.wordsList,
+        ghost.netWpm,
+        `CHALLENGER // ${ghost.challengerAvatar} ${ghost.challengerName}`
+      );
+      setChallengeOpen(false);
+    },
+    [duel]
   );
 
   // ── Profile gate ──────────────────────────────────────────────────────────
@@ -207,6 +229,7 @@ export function App() {
         onOpenTrials={() => setTrialsOpen(true)}
         onOpenMarket={() => setMarketOpen(true)}
         onOpenLeaderboard={() => { setMenuOpen(false); setLeaderboardOpen(true); }}
+        onOpenChallenge={() => { setMenuOpen(false); setChallengeOpen(true); }}
         crtEnabled={crtEnabled}
         onToggleCrt={() => setCrtEnabled(!crtEnabled)}
         scanlinesEnabled={scanlinesEnabled}
@@ -265,6 +288,14 @@ export function App() {
         isOpen={leaderboardOpen}
         onClose={() => setLeaderboardOpen(false)}
         username={profile.username}
+      />
+
+      <ChallengeModal
+        isOpen={challengeOpen}
+        onClose={() => setChallengeOpen(false)}
+        playerProfile={{ username: profile.username, avatar: profile.avatar }}
+        lastRun={lastPlayerGhost}
+        onAcceptChallenge={handleAcceptChallenge}
       />
     </TerminalViewport>
   );

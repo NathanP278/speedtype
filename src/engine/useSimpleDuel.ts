@@ -3,6 +3,13 @@ import { UserCalibration, calculateReadingAdjustedWpm } from './calibration.ts';
 import { RivalDifficultyLevel, RIVAL_DIFFICULTIES, drawRivalWpm } from './adaptiveRival.ts';
 import { DuelResultData } from '../components/ModernResultModal.tsx';
 import { soundEngine } from '../audio/soundEngine.ts';
+import {
+  CompactGhostEvent,
+  GhostRunData,
+  saveLastRun,
+  savePersonalBest,
+  getPersonalBest,
+} from '../social/ghostRecorder.ts';
 
 const DUEL_WORD_POOL = [
   'system', 'action', 'vector', 'signal', 'matrix', 'stream', 'syntax',
@@ -53,6 +60,7 @@ export function useSimpleDuel({
   const [rivalTargetWpm, setRivalTargetWpm] = useState<number>(() =>
     drawRivalWpm(calibration, difficulty)
   );
+  const [customRivalName, setCustomRivalName] = useState<string | null>(null);
   const [rivalWordIndex, setRivalWordIndex] = useState<number>(0);
   const [rivalCharIndex, setRivalCharIndex] = useState<number>(0);
   // Gate: rival does NOT move until player types first key
@@ -64,10 +72,11 @@ export function useSimpleDuel({
 
   const startTimeRef = useRef<number | null>(null);
   const rivalTimerRef = useRef<number | null>(null);
+  const eventsRef = useRef<CompactGhostEvent[]>([]);
 
   const diffConfig = RIVAL_DIFFICULTIES[difficulty] || RIVAL_DIFFICULTIES.equal;
   const basePlayerWpm = calibration?.netWpm || 65;
-  const rivalName = `RIVAL // ${diffConfig.label}`;
+  const rivalName = customRivalName || `RIVAL // ${diffConfig.label}`;
 
   const currentWordText = wordsList[playerWordIndex] || '';
   const upcomingWords = wordsList.slice(playerWordIndex + 1, playerWordIndex + 6);
@@ -112,9 +121,11 @@ export function useSimpleDuel({
         ? Math.round((correctKeystrokes / totalKeystrokes) * 100)
         : 100;
 
+      const finalPlayerWpm = currentWpm || basePlayerWpm;
+
       const result: DuelResultData = {
         winner,
-        playerWpm: currentWpm || basePlayerWpm,
+        playerWpm: finalPlayerWpm,
         playerAccuracy: accuracy,
         playerMistakes: mistakes,
         rivalWpm: rivalTargetWpm,
@@ -125,6 +136,23 @@ export function useSimpleDuel({
       };
 
       setDuelResult(result);
+
+      // Save ghost run data for challenge generation & personal best
+      const ghost: GhostRunData = {
+        id: `ghost_${Date.now()}`,
+        playerName: 'YOU',
+        timestamp: Date.now(),
+        durationMs: elapsedSec * 1000,
+        wpm: finalPlayerWpm,
+        accuracy,
+        events: eventsRef.current,
+      };
+      saveLastRun(ghost);
+      const pb = getPersonalBest();
+      if (!pb || finalPlayerWpm > pb.wpm) {
+        savePersonalBest(ghost);
+      }
+
       if (winner === 'player') {
         soundEngine.playKeystroke(25, true);
       } else {
@@ -149,6 +177,8 @@ export function useSimpleDuel({
   useEffect(() => {
     if (!enabled || isFinished || !rivalStarted) return;
 
+    const targetWordsCount = wordsList.length;
+
     const scheduleNextRivalChar = () => {
       if (isFinished) return;
 
@@ -169,7 +199,7 @@ export function useSimpleDuel({
             // Completed word
             setRivalWordIndex((prevWord) => {
               const nextWord = prevWord + 1;
-              if (nextWord >= TARGET_WORDS_COUNT) {
+              if (nextWord >= targetWordsCount) {
                 endDuel('rival');
               }
               return nextWord;
@@ -179,7 +209,7 @@ export function useSimpleDuel({
           return nextChar;
         });
 
-        if (!isFinished && rivalWordIndex < TARGET_WORDS_COUNT) {
+        if (!isFinished && rivalWordIndex < targetWordsCount) {
           scheduleNextRivalChar();
         }
       }, delay);
@@ -209,12 +239,16 @@ export function useSimpleDuel({
       if (!startTimeRef.current) {
         startTimeRef.current = Date.now();
         setRivalStarted(true);
+        eventsRef.current = [];
       }
 
       const targetChar = currentWordText[typedIndex];
       const isCorrect = e.key === targetChar;
+      const targetWordsCount = wordsList.length;
 
       setTotalKeystrokes((prev) => prev + 1);
+
+      let wordCompleted = false;
 
       if (isCorrect) {
         soundEngine.playKeystroke(cleanStreak + 1, false);
@@ -226,10 +260,11 @@ export function useSimpleDuel({
         const nextTyped = typedIndex + 1;
         if (nextTyped >= currentWordText.length) {
           // Word completed!
+          wordCompleted = true;
           soundEngine.playKeystroke(10, true);
           setPlayerWordIndex((prevWord) => {
             const nextWord = prevWord + 1;
-            if (nextWord >= TARGET_WORDS_COUNT) {
+            if (nextWord >= targetWordsCount) {
               endDuel('player');
             }
             return nextWord;
@@ -243,6 +278,16 @@ export function useSimpleDuel({
         setMistakes((prev) => prev + 1);
         setCleanStreak(0);
       }
+
+      // Record compact event for ghost replay & challenge generation
+      const delta = startTimeRef.current ? Date.now() - startTimeRef.current : 0;
+      eventsRef.current.push({
+        t: delta,
+        c: e.key,
+        ok: isCorrect,
+        s: 'strike',
+        w: wordCompleted ? currentWordText : undefined,
+      });
     };
 
     window.addEventListener('keydown', handleKeyDown);
@@ -253,6 +298,7 @@ export function useSimpleDuel({
     currentWordText,
     typedIndex,
     cleanStreak,
+    wordsList,
     endDuel,
   ]);
 
@@ -272,6 +318,7 @@ export function useSimpleDuel({
     setRivalWordIndex(0);
     setRivalCharIndex(0);
     setRivalStarted(false);
+    setCustomRivalName(null);
 
     // Draw fresh WPM for the new match
     setRivalTargetWpm(drawRivalWpm(calibration, difficulty));
@@ -279,12 +326,49 @@ export function useSimpleDuel({
     setIsFinished(false);
     setDuelResult(null);
     startTimeRef.current = null;
+    eventsRef.current = [];
 
     if (rivalTimerRef.current !== null) {
       clearTimeout(rivalTimerRef.current);
       rivalTimerRef.current = null;
     }
   }, [calibration, difficulty]);
+
+  // Start custom challenge match
+  const startCustomMatch = useCallback(
+    (words: string[], targetWpm: number, opponentName?: string) => {
+      setWordsList(words);
+      setPlayerWordIndex(0);
+      setTypedIndex(0);
+      setCleanStreak(0);
+      setBestStreak(0);
+      setTotalKeystrokes(0);
+      setCorrectKeystrokes(0);
+      setMistakes(0);
+      setCurrentWpm(0);
+      setRawCurrentWpm(0);
+
+      setRivalWordIndex(0);
+      setRivalCharIndex(0);
+      setRivalStarted(false);
+
+      setRivalTargetWpm(targetWpm);
+      if (opponentName) {
+        setCustomRivalName(opponentName);
+      }
+
+      setIsFinished(false);
+      setDuelResult(null);
+      startTimeRef.current = null;
+      eventsRef.current = [];
+
+      if (rivalTimerRef.current !== null) {
+        clearTimeout(rivalTimerRef.current);
+        rivalTimerRef.current = null;
+      }
+    },
+    []
+  );
 
   const accuracy = totalKeystrokes > 0
     ? Math.round((correctKeystrokes / totalKeystrokes) * 100)
@@ -303,7 +387,7 @@ export function useSimpleDuel({
       accuracy,
       streak: cleanStreak,
       completedCount: playerWordIndex,
-      totalTargetWords: TARGET_WORDS_COUNT,
+      totalTargetWords: wordsList.length,
     },
     rivalStats: {
       name: rivalName,
@@ -311,8 +395,9 @@ export function useSimpleDuel({
       completedCount: rivalWordIndex,
       activeWordText: rivalActiveWordText,
       charIndex: rivalCharIndex,
-      totalTargetWords: TARGET_WORDS_COUNT,
+      totalTargetWords: wordsList.length,
     },
     resetDuel,
+    startCustomMatch,
   };
 }
