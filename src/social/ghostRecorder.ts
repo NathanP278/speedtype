@@ -20,6 +20,7 @@ export interface GhostRunData {
   accuracy: number;
   events: CompactGhostEvent[];
 }
+export const GhostRunData = {};
 
 export function savePersonalBest(run: GhostRunData): void {
   try {

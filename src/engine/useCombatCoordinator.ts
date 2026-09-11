@@ -392,7 +392,7 @@ export function useCombatCoordinator({
   ]);
 
   // Start match
-  const startMatch = useCallback((opponentParam: string | GhostRunData = botProfileId) => {
+  const startMatch = useCallback((opponentParam: string | GhostRunData | BotProfile = botProfileId) => {
     resetBeam();
     resetOverclock();
     resetFinisher();
@@ -550,9 +550,9 @@ export function useCombatCoordinator({
 
       setMatchStatus('in_progress');
     } else {
-      const profileId = opponentParam as string;
+      const profileOrId = opponentParam as string | BotProfile;
       const bot = new BotSimulator(
-        profileId,
+        profileOrId,
         {
           onCharTyped: (_char, isCorrect, stance) => {
             if (matchStatus === 'finisher') {
@@ -667,7 +667,11 @@ export function useCombatCoordinator({
         isOverclocked: false,
         isDisrupted: false,
         disruptionRemainingMs: 0,
-        stats: { ...INITIAL_STATS },
+        stats: {
+          ...INITIAL_STATS,
+          wpm: botProf.wpm,
+          accuracy: Math.round(botProf.accuracy * 100),
+        },
       });
 
       setMatchStatus('in_progress');

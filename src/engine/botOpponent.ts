@@ -60,7 +60,7 @@ export class BotSimulator {
   private onRecoilFatality?: () => void;
 
   constructor(
-    profileId: string = 'shinobi',
+    profileOrId: string | BotProfile = 'shinobi',
     callbacks: {
       onCharTyped: (char: string, isCorrect: boolean, stance: StanceType) => void;
       onWordCompleted: (word: WordTarget) => void;
@@ -69,7 +69,11 @@ export class BotSimulator {
     },
     trialModifier?: string
   ) {
-    this.profile = BOT_ARCHETYPES[profileId] || BOT_ARCHETYPES.shinobi;
+    if (typeof profileOrId === 'string') {
+      this.profile = BOT_ARCHETYPES[profileOrId] || BOT_ARCHETYPES.shinobi;
+    } else {
+      this.profile = profileOrId;
+    }
     this.currentStance = this.profile.preferredStance;
     this.trialModifier = trialModifier;
     this.currentWord = generateWord(this.currentStance, this.trialModifier);
