@@ -1,5 +1,6 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { PaletteId, PHOSPHOR_PALETTES, applyPaletteToRoot } from '../styles/palettes.ts';
+import { UserAccount } from '../auth/authTypes.ts';
 import '../styles/crt.css';
 
 interface TerminalViewportProps {
@@ -14,6 +15,8 @@ interface TerminalViewportProps {
   crtEnabled?: boolean;
   scanlinesEnabled?: boolean;
   playerProfile?: { username: string; avatar: string };
+  currentUser?: UserAccount | null;
+  onSignOut?: () => void;
   // Optional legacy props for backwards compatibility
   onOpenMarket?: () => void;
   onOpenDossier?: () => void;
@@ -32,8 +35,13 @@ export const TerminalViewport: React.FC<TerminalViewportProps> = ({
   crtEnabled = false,
   scanlinesEnabled = false,
   playerProfile,
+  currentUser,
+  onSignOut,
   onOpenMarket,
 }) => {
+  const [accountPopoverOpen, setAccountPopoverOpen] = useState(false);
+  const popoverRef = useRef<HTMLDivElement>(null);
+
   // Apply CSS variables whenever palette changes
   useEffect(() => {
     const palette = PHOSPHOR_PALETTES[currentPaletteId] || PHOSPHOR_PALETTES.lime;
@@ -46,12 +54,28 @@ export const TerminalViewport: React.FC<TerminalViewportProps> = ({
     document.documentElement.style.setProperty('--wpm-bloom', `${bloom}px`);
   }, [currentWpm]);
 
+  // Click outside to close account popover
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+        setAccountPopoverOpen(false);
+      }
+    };
+    if (accountPopoverOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [accountPopoverOpen]);
+
   const PALETTES: PaletteId[] = ['lime', 'amber', 'ice', 'magenta'];
 
   const handleNextPalette = () => {
     const nextIdx = (PALETTES.indexOf(currentPaletteId) + 1) % PALETTES.length;
     onSelectPalette(PALETTES[nextIdx]);
   };
+
+  const displayUsername = currentUser?.username || playerProfile?.username;
+  const displayAvatar = currentUser?.avatar || playerProfile?.avatar;
 
   return (
     <div className="relative w-screen h-screen bg-black text-[var(--theme-text)] overflow-hidden select-none font-mono flex flex-col">
@@ -71,14 +95,71 @@ export const TerminalViewport: React.FC<TerminalViewportProps> = ({
           </span>
         </div>
 
-        {/* Center: Player identity + Calibration Badge */}
-        <div className="flex items-center gap-3">
-          {playerProfile && (
-            <div className="flex items-center gap-2 px-3 py-1 bg-zinc-900 border border-zinc-800 rounded-full text-xs shadow-inner">
-              <span className="text-base leading-none">{playerProfile.avatar}</span>
-              <span className="font-bold text-white tracking-wide">{playerProfile.username}</span>
+        {/* Center: Player identity + Account Dropdown + Calibration Badge */}
+        <div className="flex items-center gap-3 relative" ref={popoverRef}>
+          {displayUsername && (
+            <button
+              type="button"
+              onClick={() => setAccountPopoverOpen((prev) => !prev)}
+              className="flex items-center gap-2 px-3 py-1 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-600 rounded-full text-xs shadow-inner cursor-pointer transition-colors focus-ring"
+              title="Click for account details & sign out"
+            >
+              <span className="text-base leading-none">{displayAvatar}</span>
+              <span className="font-bold text-white tracking-wide">{displayUsername}</span>
+              {currentUser?.provider === 'google' ? (
+                <span className="text-[9px] px-1 bg-blue-950/80 text-blue-400 border border-blue-800/80 rounded font-bold">
+                  G
+                </span>
+              ) : (
+                <span className="text-[9px] px-1 bg-zinc-800 text-zinc-400 border border-zinc-700 rounded font-bold">
+                  ✉
+                </span>
+              )}
+            </button>
+          )}
+
+          {/* Account Popover Menu */}
+          {accountPopoverOpen && (
+            <div className="absolute top-12 left-0 w-64 bg-zinc-950 border border-zinc-800 rounded-xl p-4 shadow-2xl z-50 text-left animate-fadeIn">
+              <div className="flex items-center gap-3 border-b border-zinc-800 pb-3 mb-3">
+                <span className="text-2xl p-1 bg-zinc-900 rounded-lg border border-zinc-800">
+                  {displayAvatar}
+                </span>
+                <div className="truncate">
+                  <p className="font-black text-white text-sm truncate">{displayUsername}</p>
+                  <p className="text-[10px] text-zinc-400 truncate">
+                    {currentUser?.email || 'local_fighter'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="text-[10px] text-zinc-500 space-y-1 mb-3">
+                <p>
+                  AUTH:{' '}
+                  <strong className="text-zinc-300 uppercase">
+                    {currentUser?.provider === 'google' ? 'Google OAuth' : 'Email/Password'}
+                  </strong>
+                </p>
+                <p>
+                  STATUS: <strong className="text-emerald-400">ACTIVE PILOT</strong>
+                </p>
+              </div>
+
+              {onSignOut && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAccountPopoverOpen(false);
+                    onSignOut();
+                  }}
+                  className="w-full py-2 bg-red-950/40 hover:bg-red-900/60 border border-red-800/60 text-red-300 font-bold text-xs rounded-lg transition-colors focus-ring"
+                >
+                  [SIGN OUT]
+                </button>
+              )}
             </div>
           )}
+
           {calibrationBadge}
         </div>
 

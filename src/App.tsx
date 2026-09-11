@@ -9,11 +9,11 @@ import { RivalryDossierModal } from './components/RivalryDossierModal.tsx';
 import { TournamentLounge } from './components/TournamentLounge.tsx';
 import { WeeklyTrialModal } from './components/WeeklyTrialModal.tsx';
 import { GhostDuelSelector } from './components/GhostDuelSelector.tsx';
-import { ProfileSetupModal } from './components/ProfileSetupModal.tsx';
+import { AuthModal } from './components/AuthModal.tsx';
 import { LeaderboardModal } from './components/LeaderboardModal.tsx';
 import { ChallengeModal } from './components/ChallengeModal.tsx';
 import { ChallengeGhostRunner } from './social/challengeCode.ts';
-import { useProfile } from './profile/useProfile.ts';
+import { useAuth } from './auth/useAuth.ts';
 import { submitLeaderboardEntry } from './profile/leaderboard.ts';
 import { useEconomy } from './economy/useEconomy.ts';
 import { loadDossier, recordMatchInDossier, DossierData } from './social/rivalryDossier.ts';
@@ -34,8 +34,8 @@ import { WeeklyTrial } from './trials/weeklyTrials.ts';
 import { rateLimitCheck } from './utils/rateLimiter.ts';
 
 export function App() {
-  // Profile gate — blocks entire app until profile is created
-  const { profile, createProfile } = useProfile();
+  // Authentication & Account Gate
+  const auth = useAuth();
 
   // Player Benchmark Calibration
   const [calibration, setCalibration] = useState<UserCalibration | null>(() => getStoredCalibration());
@@ -102,15 +102,17 @@ export function App() {
       const earnedKp = isWin ? Math.round(playerWpm * 1.5) : Math.round(playerWpm * 0.5);
       economy.awardKp(earnedKp);
 
-      // Submit to leaderboard
-      submitLeaderboardEntry({
-        username: profile!.username,
-        avatar: profile!.avatar,
-        netWpm: playerWpm,
-        accuracy: duel.playerStats.accuracy,
-        difficulty,
-        timestamp: Date.now(),
-      });
+      // Submit to leaderboard if user is authenticated
+      if (auth.user) {
+        submitLeaderboardEntry({
+          username: auth.user.username,
+          avatar: auth.user.avatar,
+          netWpm: playerWpm,
+          accuracy: duel.playerStats.accuracy,
+          difficulty,
+          timestamp: Date.now(),
+        });
+      }
 
       setDossier((prev) =>
         recordMatchInDossier(
@@ -124,7 +126,7 @@ export function App() {
         )
       );
     },
-    [duel.rivalStats.name, economy, profile, difficulty, duel.playerStats.accuracy]
+    [duel.rivalStats.name, economy, auth.user, difficulty, duel.playerStats.accuracy]
   );
 
   const handleAcceptChallenge = useCallback(
@@ -139,10 +141,17 @@ export function App() {
     [duel]
   );
 
-  // ── Profile gate ──────────────────────────────────────────────────────────
-  if (!profile) {
+  // ── Authentication gate ──────────────────────────────────────────────────
+  if (!auth.user) {
     return (
-      <ProfileSetupModal onComplete={(username, avatar) => createProfile(username, avatar)} />
+      <AuthModal
+        onSignInWithEmail={auth.signInWithEmail}
+        onSignUpWithEmail={auth.signUpWithEmail}
+        onSignInWithGoogle={auth.signInWithGoogle}
+        isLoading={auth.isLoading}
+        serverError={auth.error}
+        isCloudEnabled={auth.isCloudEnabled}
+      />
     );
   }
 
@@ -151,7 +160,9 @@ export function App() {
       kpBalance={economy.balance}
       currentPaletteId={economy.equipped.palette}
       currentWpm={duel.playerStats.wpm}
-      playerProfile={{ username: profile.username, avatar: profile.avatar }}
+      playerProfile={{ username: auth.user.username, avatar: auth.user.avatar }}
+      currentUser={auth.user}
+      onSignOut={auth.signOut}
       onSelectPalette={(id) => economy.equipItem('palette', id)}
       onOpenMenu={() => setMenuOpen(true)}
       onRetest={() => setIsCalibrating(true)}
@@ -288,13 +299,13 @@ export function App() {
       <LeaderboardModal
         isOpen={leaderboardOpen}
         onClose={() => setLeaderboardOpen(false)}
-        username={profile.username}
+        username={auth.user.username}
       />
 
       <ChallengeModal
         isOpen={challengeOpen}
         onClose={() => setChallengeOpen(false)}
-        playerProfile={{ username: profile.username, avatar: profile.avatar }}
+        playerProfile={{ username: auth.user.username, avatar: auth.user.avatar }}
         lastRun={lastPlayerGhost}
         onAcceptChallenge={handleAcceptChallenge}
       />
