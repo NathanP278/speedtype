@@ -8,6 +8,10 @@ create table if not exists public.profiles (
   id uuid references auth.users on delete cascade primary key,
   username text unique not null,
   avatar text not null default '⚡',
+  display_name text,
+  call_sign text default 'PILOT',
+  telemetry jsonb default '{}'::jsonb,
+  onboarding_complete boolean default false,
   provider text not null default 'email',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()

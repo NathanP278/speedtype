@@ -134,13 +134,13 @@ export function App() {
     [duel]
   );
 
-  // ── Authentication gate ──────────────────────────────────────────────────
-  if (!auth.user) {
+  // ── Authentication & Onboarding Gate ──────────────────────────────────────
+  if (!auth.user || !auth.user.onboardingComplete) {
     return (
       <AuthModal
-        onSignInWithEmail={auth.signInWithEmail}
-        onSignUpWithEmail={auth.signUpWithEmail}
+        currentUser={auth.user}
         onSignInWithGoogle={auth.signInWithGoogle}
+        onUpdateProfile={auth.updateProfile}
         isLoading={auth.isLoading}
         serverError={auth.error}
         isCloudEnabled={auth.isCloudEnabled}

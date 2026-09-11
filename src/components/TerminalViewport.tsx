@@ -105,44 +105,60 @@ export const TerminalViewport: React.FC<TerminalViewportProps> = ({
               title="Click for account details & sign out"
             >
               <span className="text-base leading-none">{displayAvatar}</span>
-              <span className="font-bold text-white tracking-wide">{displayUsername}</span>
-              {currentUser?.provider === 'google' ? (
-                <span className="text-[9px] px-1 bg-blue-950/80 text-blue-400 border border-blue-800/80 rounded font-bold">
-                  G
-                </span>
-              ) : (
-                <span className="text-[9px] px-1 bg-zinc-800 text-zinc-400 border border-zinc-700 rounded font-bold">
-                  ✉
-                </span>
-              )}
+              <span className="font-bold text-white tracking-wide">
+                {currentUser?.displayName || displayUsername}
+              </span>
+              <span className="text-[9px] px-1 bg-blue-950/80 text-blue-400 border border-blue-800/80 rounded font-bold">
+                G
+              </span>
             </button>
           )}
 
           {/* Account Popover Menu */}
           {accountPopoverOpen && (
-            <div className="absolute top-12 left-0 w-64 bg-zinc-950 border border-zinc-800 rounded-xl p-4 shadow-2xl z-50 text-left animate-fadeIn">
+            <div className="absolute top-12 left-0 w-72 bg-zinc-950 border border-zinc-800 rounded-2xl p-4 shadow-2xl z-50 text-left animate-fadeIn">
               <div className="flex items-center gap-3 border-b border-zinc-800 pb-3 mb-3">
-                <span className="text-2xl p-1 bg-zinc-900 rounded-lg border border-zinc-800">
+                <span className="text-3xl p-1 bg-zinc-900 rounded-xl border border-zinc-800">
                   {displayAvatar}
                 </span>
                 <div className="truncate">
-                  <p className="font-black text-white text-sm truncate">{displayUsername}</p>
-                  <p className="text-[10px] text-zinc-400 truncate">
+                  <p className="font-black text-white text-sm truncate">
+                    {currentUser?.displayName || displayUsername}
+                  </p>
+                  <p className="text-[10px] text-[var(--theme-text)] font-bold truncate">
+                    {currentUser?.callSign || 'PILOT'} // @{displayUsername}
+                  </p>
+                  <p className="text-[10px] text-zinc-500 truncate mt-0.5">
                     {currentUser?.email || 'local_fighter'}
                   </p>
                 </div>
               </div>
 
-              <div className="text-[10px] text-zinc-500 space-y-1 mb-3">
-                <p>
-                  AUTH:{' '}
-                  <strong className="text-zinc-300 uppercase">
-                    {currentUser?.provider === 'google' ? 'Google OAuth' : 'Email/Password'}
-                  </strong>
-                </p>
-                <p>
-                  STATUS: <strong className="text-emerald-400">ACTIVE PILOT</strong>
-                </p>
+              <div className="text-[10px] text-zinc-400 space-y-1.5 mb-4 bg-zinc-900/60 p-2.5 rounded-xl border border-zinc-850">
+                <div className="flex justify-between">
+                  <span className="text-zinc-500">AUTH PROVIDER:</span>
+                  <span className="text-blue-400 font-bold">GOOGLE OAUTH</span>
+                </div>
+                {currentUser?.telemetry?.switchType && (
+                  <div className="flex justify-between">
+                    <span className="text-zinc-500">SWITCH RIG:</span>
+                    <span className="text-zinc-300 font-bold uppercase">
+                      {currentUser.telemetry.switchType.replace('_', ' ')}
+                    </span>
+                  </div>
+                )}
+                {currentUser?.telemetry?.keyboardLayout && (
+                  <div className="flex justify-between">
+                    <span className="text-zinc-500">LAYOUT:</span>
+                    <span className="text-zinc-300 font-bold uppercase">
+                      {currentUser.telemetry.keyboardLayout}
+                    </span>
+                  </div>
+                )}
+                <div className="flex justify-between">
+                  <span className="text-zinc-500">STATUS:</span>
+                  <span className="text-emerald-400 font-bold">VERIFIED FIGHTER</span>
+                </div>
               </div>
 
               {onSignOut && (
@@ -152,7 +168,7 @@ export const TerminalViewport: React.FC<TerminalViewportProps> = ({
                     setAccountPopoverOpen(false);
                     onSignOut();
                   }}
-                  className="w-full py-2 bg-red-950/40 hover:bg-red-900/60 border border-red-800/60 text-red-300 font-bold text-xs rounded-lg transition-colors focus-ring"
+                  className="w-full py-2 bg-red-950/40 hover:bg-red-900/60 border border-red-800/60 text-red-300 font-bold text-xs rounded-xl transition-colors focus-ring cursor-pointer"
                 >
                   [SIGN OUT]
                 </button>
