@@ -247,6 +247,7 @@ export function registerTier3CrossFeatureTests(): void {
       expect(ranked.length).toBe(2);
       const pulverize = ranked.find(w => w.word === 'PULVERIZE');
       expect(pulverize!.attempts).toBe(2);
+      expect(pulverize!.mistakes).toBe(2);
     });
 
     it('P14: F13 (Code Syntax) + F14 (Blind Duel): Code syntax word masked in blind duel resets on punctuation error', () => {

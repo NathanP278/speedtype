@@ -66,7 +66,7 @@ export function saveDossier(data: DossierData) {
 
 export function getRankedNemesisWords(dossier: DossierData): NemesisWordStat[] {
   const list: NemesisWordStat[] = Object.entries(dossier.nemesisWords).map(([word, stat]) => {
-    const errorRate = stat.attempts > 0 ? Math.round((stat.mistakes / stat.attempts) * 100) : 0;
+    const errorRate = stat.attempts > 0 ? Math.min(100, Math.round((stat.mistakes / stat.attempts) * 100)) : 0;
     return {
       word,
       attempts: stat.attempts,

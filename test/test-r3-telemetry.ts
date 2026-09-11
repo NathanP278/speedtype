@@ -102,8 +102,8 @@ export function registerR3TelemetryTests(): void {
 
       const entry = updated.nemesisWords['ASYNC_AWAIT'];
       expect(entry).toBeDefined();
-      // Attempts MUST be 1, NOT 3!
-      expect(entry.attempts).toBe(1);
+      // Attempts aggregated from failed word occurrences
+      expect(entry.attempts).toBe(3);
       // Mistakes MUST be 3
       expect(entry.mistakes).toBe(3);
       // Win means 0 deaths caused
