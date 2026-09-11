@@ -289,9 +289,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         {/* Google OAuth Button */}
         <button
           type="button"
-          onClick={onSignInWithGoogle}
+          onClick={async () => {
+            setLocalError(null);
+            const res = await onSignInWithGoogle();
+            if (!res.success && res.error) {
+              setLocalError(res.error);
+            }
+          }}
           disabled={isLoading}
-          className="w-full py-2.5 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 hover:border-zinc-500 text-white font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-3 shadow-md focus-ring"
+          className="w-full py-2.5 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 hover:border-zinc-500 text-white font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-3 shadow-md focus-ring cursor-pointer disabled:opacity-50"
         >
           <svg className="w-4 h-4" viewBox="0 0 24 24">
             <path
