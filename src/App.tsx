@@ -27,6 +27,7 @@ import {
 import { RivalDifficultyLevel } from './engine/adaptiveRival.ts';
 import { useSimpleDuel } from './engine/useSimpleDuel.ts';
 import { WeeklyTrial } from './trials/weeklyTrials.ts';
+import { rateLimitCheck } from './utils/rateLimiter.ts';
 
 export function App() {
   // Profile gate — blocks entire app until profile is created
@@ -70,6 +71,9 @@ export function App() {
 
   // Handle benchmark calibration completion
   const handleCalibrationComplete = (newCal: UserCalibration) => {
+    if (!rateLimitCheck('calibration_complete')) {
+      console.warn('[RateLimit] calibration_complete blocked');
+    }
     setCalibration(newCal);
     setIsCalibrating(false);
     duel.resetDuel();
@@ -78,6 +82,10 @@ export function App() {
   // When match completes, award KP & record dossier
   const handleDuelResultRecorded = useCallback(
     (isWin: boolean, playerWpm: number) => {
+      if (!rateLimitCheck('kp_award')) {
+        console.warn('[RateLimit] kp_award blocked — too many completions');
+        return;
+      }
       const earnedKp = isWin ? Math.round(playerWpm * 1.5) : Math.round(playerWpm * 0.5);
       economy.awardKp(earnedKp);
 

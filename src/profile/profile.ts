@@ -1,3 +1,5 @@
+import { rateLimitCheck } from '../utils/rateLimiter.ts';
+
 export interface PlayerProfile {
   username: string;   // 3-20 chars, /^[a-zA-Z0-9_]+$/
   avatar: string;     // one of AVATAR_OPTIONS
@@ -27,11 +29,17 @@ export function loadProfile(): PlayerProfile | null {
   }
 }
 
-export function saveProfile(p: PlayerProfile): void {
+export function saveProfile(p: PlayerProfile): boolean {
+  if (!rateLimitCheck('profile_save')) {
+    console.warn('[RateLimit] profile_save blocked');
+    return false;
+  }
   try {
     localStorage.setItem(PROFILE_KEY, JSON.stringify(p));
+    return true;
   } catch (err) {
     console.error('Failed to save profile', err);
+    return false;
   }
 }
 
