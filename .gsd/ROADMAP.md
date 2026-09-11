@@ -24,6 +24,13 @@ The stack employs Vite + React + TypeScript + Tailwind CSS + HTML5 Canvas + Web 
 - **Plan 4.1 (Wave 1)**: Microsecond Ghost Keystroke Recorder, Ghost Playback Engine (Bots + Replays) & Rivalry Dossier Nemesis Words Tracker.
 - **Plan 4.2 (Wave 2)**: Tournament Lounge & Spectator Pit (4-8 players), Shard Wagering, Live ASCII Reaction Bar & Weekly Themed Trials (Code Syntax, Blind Duel, 1 HP).
 
+### Phase 5: UX Simplification & Visual Calm
+- **Plan 5.1 (Wave 1)**: App.tsx extraction (useMatchSession hook) & Navigation collapse (single [MENU] panel replacing 7-button header).
+- **Plan 5.2 (Wave 1)**: CombatHud minimal redesign (remove live stats) & KineticBeam number removal (bar-only display).
+- **Plan 5.3 (Wave 2)**: CSS animation calm-down (glitch timing, reduced-motion support) & asymmetric word zone (hero player card vs slim opponent strip).
+- **Plan 5.4 (Wave 2)**: Idle screen 3-mode card selector & gray token hierarchy documentation.
+- **Plan 5.5 (Wave 3)**: Modern Web Design Layer — physics-based spring easings, @starting-style modal animations, View Transitions API KO screen, CSS noise texture, JetBrains Mono, focus-visible system, sibling-index() stagger.
+
 ---
 
 ## Phase Dependencies
@@ -33,4 +40,5 @@ flowchart TD
     P1["Phase 1: Combat & Typing Engine"] --> P2["Phase 2: Sensory Audio-Visuals"]
     P2 --> P3["Phase 3: Progression & Black Market"]
     P3 --> P4["Phase 4: Competitive Duels & Arena"]
+    P4 --> P5["Phase 5: UX Simplification & Visual Calm"]
 ```

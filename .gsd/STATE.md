@@ -1,8 +1,8 @@
 # SPEEDTYPE PROJECT STATE
 
 ## Current Position
-- **Active Phase**: All Phases Complete
-- **Status**: PRODUCTION READY
+- **Active Phase**: Phase 5 — UX Simplification & Visual Calm
+- **Status**: PLANNING COMPLETE — READY FOR EXECUTION
 
 ## Architectural Directives
 - **Zero Framework Bloat**: Pure Vite + React 19 + TypeScript + Tailwind CSS.
@@ -23,6 +23,12 @@
 - [x] Phase 4: Competitive Ladders & Social Arena
   - [x] Plan 4.1: Asynchronous Ghost Duels & The Rivalry Dossier (Commit 59a30e5)
   - [x] Plan 4.2: Tournament Lounge, Spectator Wagering & Weekly Trials (Commit 59a30e5)
+- [ ] Phase 5: UX Simplification & Visual Calm
+  - [ ] Plan 5.1: App.tsx Extraction & Navigation Collapse (Wave 1)
+  - [ ] Plan 5.2: CombatHud Redesign & KineticBeam Simplification (Wave 1)
+  - [ ] Plan 5.3: CSS Animation Calm-Down & Word Zone Redesign (Wave 2)
+  - [ ] Plan 5.4: Idle Screen Mode Selector & Gray Token Hierarchy (Wave 2)
+  - [ ] Plan 5.5: Modern Web Design Layer — Springs, Transitions, Focus, Font, Texture (Wave 3)
 
 ## Verification Evidence
 - `node ./node_modules/typescript/bin/tsc --noEmit`: Code 0 (0 errors)
