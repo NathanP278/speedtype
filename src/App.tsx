@@ -9,6 +9,8 @@ import { RivalryDossierModal } from './components/RivalryDossierModal.tsx';
 import { TournamentLounge } from './components/TournamentLounge.tsx';
 import { WeeklyTrialModal } from './components/WeeklyTrialModal.tsx';
 import { GhostDuelSelector } from './components/GhostDuelSelector.tsx';
+import { ProfileSetupModal } from './components/ProfileSetupModal.tsx';
+import { useProfile } from './profile/useProfile.ts';
 import { useEconomy } from './economy/useEconomy.ts';
 import { loadDossier, recordMatchInDossier, DossierData } from './social/rivalryDossier.ts';
 import {
@@ -27,6 +29,9 @@ import { useSimpleDuel } from './engine/useSimpleDuel.ts';
 import { WeeklyTrial } from './trials/weeklyTrials.ts';
 
 export function App() {
+  // Profile gate — blocks entire app until profile is created
+  const { profile, createProfile } = useProfile();
+
   // Player Benchmark Calibration
   const [calibration, setCalibration] = useState<UserCalibration | null>(() => getStoredCalibration());
   const [isCalibrating, setIsCalibrating] = useState<boolean>(() => !getStoredCalibration());
@@ -91,11 +96,19 @@ export function App() {
     [duel.rivalStats.name, economy]
   );
 
+  // ── Profile gate ──────────────────────────────────────────────────────────
+  if (!profile) {
+    return (
+      <ProfileSetupModal onComplete={(username, avatar) => createProfile(username, avatar)} />
+    );
+  }
+
   return (
     <TerminalViewport
       kpBalance={economy.balance}
       currentPaletteId={economy.equipped.palette}
       currentWpm={duel.playerStats.wpm}
+      playerProfile={{ username: profile.username, avatar: profile.avatar }}
       onSelectPalette={(id) => economy.equipItem('palette', id)}
       onOpenMenu={() => setMenuOpen(true)}
       onRetest={() => setIsCalibrating(true)}

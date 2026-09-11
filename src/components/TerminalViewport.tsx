@@ -13,6 +13,7 @@ interface TerminalViewportProps {
   onRetest?: () => void;
   crtEnabled?: boolean;
   scanlinesEnabled?: boolean;
+  playerProfile?: { username: string; avatar: string };
   // Optional legacy props for backwards compatibility
   onOpenMarket?: () => void;
   onOpenDossier?: () => void;
@@ -31,6 +32,7 @@ export const TerminalViewport: React.FC<TerminalViewportProps> = ({
   onRetest,
   crtEnabled = false,
   scanlinesEnabled = false,
+  playerProfile,
   onOpenMarket,
 }) => {
   // Apply CSS variables whenever palette changes
@@ -70,8 +72,14 @@ export const TerminalViewport: React.FC<TerminalViewportProps> = ({
           </span>
         </div>
 
-        {/* Center: Calibration Benchmark Badge */}
-        <div className="flex items-center gap-2">
+        {/* Center: Player identity + Calibration Badge */}
+        <div className="flex items-center gap-3">
+          {playerProfile && (
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-zinc-900/80 border border-zinc-800 rounded-full text-xs">
+              <span className="text-base leading-none">{playerProfile.avatar}</span>
+              <span className="font-bold text-white tracking-wide">{playerProfile.username}</span>
+            </div>
+          )}
           {calibrationBadge}
         </div>
 
