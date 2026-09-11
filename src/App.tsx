@@ -292,7 +292,12 @@ export function App() {
       />
 
       {/* Center Kinetic Tug-of-War Beam */}
-      <KineticBeamDisplay beamState={combat.beamState} isOverclocked={combat.isOverclocked} />
+      <KineticBeamDisplay 
+        beamState={combat.beamState} 
+        isOverclocked={combat.isOverclocked} 
+        playerName={combat.player.name}
+        opponentName={combat.opponent.name}
+      />
 
       {/* Active Match Arena / Word Zones */}
       <div className="w-full max-w-5xl flex-1 flex flex-col justify-center items-center relative my-2">

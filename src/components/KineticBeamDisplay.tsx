@@ -5,11 +5,15 @@ import { STANCE_CONFIGS } from '../engine/dictionary.ts';
 interface KineticBeamDisplayProps {
   beamState: BeamState;
   isOverclocked?: boolean;
+  playerName?: string;
+  opponentName?: string;
 }
 
 export const KineticBeamDisplay: React.FC<KineticBeamDisplayProps> = ({
   beamState,
   isOverclocked = false,
+  playerName = 'YOU',
+  opponentName = 'RIVAL',
 }) => {
   const { position, dominantStance, screenShake } = beamState;
   const stanceConfig = STANCE_CONFIGS[dominantStance];
@@ -29,39 +33,14 @@ export const KineticBeamDisplay: React.FC<KineticBeamDisplayProps> = ({
         boxShadow: `0 0 15px var(--theme-dim)`,
       }}
     >
-      {/* HUD Header Labels */}
-      <div className="flex justify-between text-xs font-mono mb-1.5 opacity-80 select-none">
-        <span className={isNearPlayerKo ? 'text-red-500 font-bold animate-pulse' : 'text-[var(--theme-text)]'}>
-          ◀ [PLAYER BASELINE] {isNearPlayerKo && 'CRITICAL HAZARD!'}
-        </span>
-        <span className="text-zinc-400 font-mono">
-          KINETIC BEAM: {position > 0 ? `+${Math.round(position)}` : Math.round(position)} | STANCE: {stanceConfig.name.toUpperCase()}
-        </span>
-        <span className={isNearOpponentKo ? 'text-green-400 font-bold animate-pulse' : 'text-[var(--theme-text)]'}>
-          {isNearOpponentKo && 'KO IMMINENT!'} [OPPONENT BASELINE] ▶
-        </span>
-      </div>
-
       {/* Beam Track */}
-      <div className="relative h-7 w-full bg-zinc-950 rounded border border-zinc-800 overflow-hidden flex items-center">
+      <div className="relative h-6 w-full bg-zinc-950 rounded border border-zinc-800 overflow-hidden flex items-center">
         {/* Baseline Danger Zones */}
         <div className="absolute left-0 top-0 bottom-0 w-[15%] bg-red-950/40 border-r border-red-800/50" />
         <div className="absolute right-0 top-0 bottom-0 w-[15%] bg-blue-950/40 border-l border-blue-800/50" />
 
         {/* Center Equilibrium Line */}
         <div className="absolute left-1/2 top-0 bottom-0 w-[2px] bg-zinc-600 -translate-x-1/2 z-10 opacity-70" />
-
-        {/* Grid Tick Markers */}
-        {[-75, -50, -25, 25, 50, 75].map(tick => {
-          const leftPercent = ((tick + 100) / 200) * 100;
-          return (
-            <div
-              key={tick}
-              className="absolute top-1 bottom-1 w-[1px] bg-zinc-800 -translate-x-1/2 pointer-events-none"
-              style={{ left: `${leftPercent}%` }}
-            />
-          );
-        })}
 
         {/* Dynamic Plasma Conduit (Left energy side) */}
         <div
@@ -107,13 +86,14 @@ export const KineticBeamDisplay: React.FC<KineticBeamDisplayProps> = ({
         </div>
       </div>
 
-      {/* Tension scale tick numbers */}
-      <div className="flex justify-between text-[10px] font-mono mt-1 text-zinc-500 select-none px-1">
-        <span>-100</span>
-        <span>-50</span>
-        <span className="text-zinc-300">0 (CENTER)</span>
-        <span>+50</span>
-        <span>+100</span>
+      {/* Name Labels */}
+      <div className="flex justify-between text-[10px] font-mono mt-2 select-none px-1">
+        <span className={isNearPlayerKo ? 'text-red-500 font-bold' : 'text-zinc-500'}>
+          {playerName}
+        </span>
+        <span className={isNearOpponentKo ? 'text-green-400 font-bold' : 'text-zinc-500'}>
+          {opponentName}
+        </span>
       </div>
     </div>
   );
