@@ -198,6 +198,7 @@ export function App() {
           typedIndex={duel.typedIndex}
           upcomingWords={duel.upcomingWords}
           difficulty={difficulty}
+          gameStarted={duel.gameStarted}
           onResetMatch={duel.resetDuel}
           onRetestSpeed={() => setIsCalibrating(true)}
         />

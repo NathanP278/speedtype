@@ -29,7 +29,6 @@ export const TerminalViewport: React.FC<TerminalViewportProps> = ({
   onSelectPalette,
   onOpenMenu,
   calibrationBadge,
-  onRetest,
   crtEnabled = false,
   scanlinesEnabled = false,
   playerProfile,
@@ -56,18 +55,18 @@ export const TerminalViewport: React.FC<TerminalViewportProps> = ({
 
   return (
     <div className="relative w-screen h-screen bg-black text-[var(--theme-text)] overflow-hidden select-none font-mono flex flex-col">
-      {/* Streamlined Minimal Header */}
-      <header className="h-12 px-4 md:px-6 bg-zinc-950 border-b border-zinc-800 flex items-center justify-between text-xs z-50">
+      {/* Spacious 56px Header */}
+      <header className="h-14 px-4 md:px-8 bg-zinc-950/90 border-b border-zinc-800/80 flex items-center justify-between text-xs z-50 backdrop-blur-md">
         {/* Left: Brand / Title */}
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
-            <span className="text-[var(--theme-text)] text-base font-bold">⚡</span>
-            <span className="font-extrabold tracking-widest text-white text-sm">
+            <span className="text-[var(--theme-text)] text-lg font-black animate-pulse">⚡</span>
+            <span className="font-black tracking-widest text-white text-base">
               SPEEDTYPE
             </span>
           </div>
 
-          <span className="hidden sm:inline-block text-[10px] text-zinc-500 uppercase px-1.5 py-0.5 border border-zinc-800 rounded">
+          <span className="hidden sm:inline-block text-[10px] text-zinc-500 uppercase px-2 py-0.5 border border-zinc-800 rounded-full font-semibold">
             v2.0 // ADAPTIVE
           </span>
         </div>
@@ -75,7 +74,7 @@ export const TerminalViewport: React.FC<TerminalViewportProps> = ({
         {/* Center: Player identity + Calibration Badge */}
         <div className="flex items-center gap-3">
           {playerProfile && (
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-zinc-900/80 border border-zinc-800 rounded-full text-xs">
+            <div className="flex items-center gap-2 px-3 py-1 bg-zinc-900 border border-zinc-800 rounded-full text-xs shadow-inner">
               <span className="text-base leading-none">{playerProfile.avatar}</span>
               <span className="font-bold text-white tracking-wide">{playerProfile.username}</span>
             </div>
@@ -84,40 +83,29 @@ export const TerminalViewport: React.FC<TerminalViewportProps> = ({
         </div>
 
         {/* Right: Clean Controls */}
-        <div className="flex items-center gap-2.5">
-          {onRetest && (
-            <button
-              type="button"
-              onClick={onRetest}
-              className="hidden md:inline-flex items-center px-2.5 py-1 border border-zinc-800 hover:border-zinc-600 rounded text-[11px] text-zinc-300 hover:text-white transition-colors"
-              title="Retest your benchmark typing speed"
-            >
-              [RETEST SPEED]
-            </button>
-          )}
+        <div className="flex items-center gap-3">
+          {/* KP Wallet Badge */}
+          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-zinc-900/90 border border-zinc-800 rounded-lg text-xs font-bold text-[var(--theme-text)]">
+            <span>⚡</span>
+            <span>{kpBalance.toLocaleString()} KP</span>
+          </div>
 
-          {/* Compact Palette Cycler */}
+          {/* Palette Cycler */}
           <button
             type="button"
             onClick={handleNextPalette}
-            className="px-2.5 py-1 border border-zinc-800 hover:border-[var(--theme-text)] rounded text-[11px] text-zinc-300 hover:text-[var(--theme-text)] transition-colors uppercase"
+            className="px-3 py-1.5 border border-zinc-800 hover:border-[var(--theme-text)] rounded-lg text-xs text-zinc-300 hover:text-[var(--theme-text)] transition-colors uppercase focus-ring"
             title="Cycle theme palette"
           >
             🎨 {currentPaletteId}
           </button>
 
-          {/* KP Wallet Badge */}
-          <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 bg-zinc-900 border border-zinc-800 rounded text-[11px] font-bold text-[var(--theme-text)]">
-            <span>⚡</span>
-            <span>{kpBalance.toLocaleString()}</span>
-          </div>
-
-          {/* Single clean Menu / More button */}
+          {/* Menu / Modes button */}
           {(onOpenMenu || onOpenMarket) && (
             <button
               type="button"
               onClick={onOpenMenu || onOpenMarket}
-              className="px-3 py-1 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 hover:border-zinc-500 rounded text-xs font-bold text-white transition-all shadow-sm"
+              className="px-3.5 py-1.5 bg-[var(--theme-dim)] hover:bg-[var(--theme-text)] border border-[var(--theme-text)] rounded-lg text-xs font-bold text-[var(--theme-text)] hover:text-black transition-all shadow-sm focus-ring"
               title="Open Extra Game Modes & Settings"
             >
               [MODES ☰]
@@ -126,9 +114,9 @@ export const TerminalViewport: React.FC<TerminalViewportProps> = ({
         </div>
       </header>
 
-      {/* Main Screen Body */}
+      {/* Main Screen Body: p-0 so children have full breathing space */}
       <main
-        className={`relative flex-1 flex flex-col items-center justify-center p-4 md:p-6 overflow-hidden ${
+        className={`relative flex-1 flex flex-col items-center justify-center p-0 overflow-y-auto overflow-x-hidden ${
           crtEnabled ? 'crt-screen crt-curvature' : 'crt-screen'
         }`}
       >
@@ -147,16 +135,17 @@ export const TerminalViewport: React.FC<TerminalViewportProps> = ({
         </div>
       </main>
 
-      {/* Clean, Subtle Footer */}
-      <footer className="h-7 px-4 md:px-6 bg-zinc-950 border-t border-zinc-900 flex items-center justify-between text-[11px] text-zinc-500 z-50">
+      {/* Clean, Subtle 32px Footer */}
+      <footer className="h-8 px-4 md:px-8 bg-zinc-950/90 border-t border-zinc-900 flex items-center justify-between text-xs text-zinc-500 z-50">
         <div className="flex items-center gap-3">
-          <span>SPEEDTYPE ADAPTIVE DUEL ENGINE</span>
-          <span className="hidden sm:inline text-zinc-700">•</span>
-          <span className="hidden sm:inline text-zinc-600">0ms INPUT LATENCY</span>
+          <span className="text-zinc-600 font-medium">SPEEDTYPE ADAPTIVE DUEL ENGINE</span>
+          <span className="hidden sm:inline text-zinc-800">•</span>
+          <span className="hidden sm:inline text-zinc-500">TAB: STANCE</span>
+          <span className="hidden sm:inline text-zinc-800">•</span>
+          <span className="hidden sm:inline text-zinc-500">ESC: MENU</span>
         </div>
         <div className="flex items-center gap-4 text-zinc-600">
-          <span className="hidden md:inline">KEYSTROKES TRACKED REAL-TIME</span>
-          <span className="text-zinc-500 font-semibold">TAB: STANCE</span>
+          <span className="text-[var(--theme-text)] font-semibold">⚡ {kpBalance.toLocaleString()} KP</span>
         </div>
       </footer>
     </div>
