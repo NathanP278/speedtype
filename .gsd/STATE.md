@@ -30,8 +30,13 @@
   - [x] Plan 9.2: Calibration, Result Modal & 2-Column Menu Polish (Commit 79ef2ee)
 - [x] Phase 10: Rate Limiting & Input Security
   - [x] Plan 10.1: Token-Bucket Rate Limiter & XSS Input Hardening (Commit 8be655b)
+- [x] Phase 11: Cloud Auth & Global Leaderboard
+  - [x] Plan 11.1: Supabase client, SQL schema, auth types, useAuth hook (Commit 02d8598)
+  - [x] Plan 11.2: AuthModal dual-tab, Google OAuth, App gate & sign-out (Commit 1ce7147)
+  - [x] Plan 11.3: Cloud Leaderboard service, difficulty filters & account badges (Commit adc6170)
 
 ## Verification Evidence
 - `npx tsc --noEmit`: Code 0 (0 errors)
-- `npm run build`: Vite v6.4.3 production bundle built in 13.89s (352.62 kB JS, 41.35 kB CSS)
+- `npm run build`: Vite v6.4.3 production bundle built in 4.69s (dist/assets/index-Dnmxyhy3.js 594.29 kB, index-CsQG8xuo.css 43.21 kB)
 - GitHub Remote: Synchronized with origin/master
+
