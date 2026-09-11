@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { UserCalibration } from './calibration.ts';
-import { RivalDifficultyLevel, RIVAL_DIFFICULTIES } from './adaptiveRival.ts';
+import { RivalDifficultyLevel, RIVAL_DIFFICULTIES, drawRivalWpm } from './adaptiveRival.ts';
 import { DuelResultData } from '../components/ModernResultModal.tsx';
 import { soundEngine } from '../audio/soundEngine.ts';
 
@@ -48,9 +48,14 @@ export function useSimpleDuel({
   const [mistakes, setMistakes] = useState<number>(0);
   const [currentWpm, setCurrentWpm] = useState<number>(0);
 
-  // Rival AI state
+  // Rival AI state — WPM drawn fresh per match
+  const [rivalTargetWpm, setRivalTargetWpm] = useState<number>(() =>
+    drawRivalWpm(calibration, difficulty)
+  );
   const [rivalWordIndex, setRivalWordIndex] = useState<number>(0);
   const [rivalCharIndex, setRivalCharIndex] = useState<number>(0);
+  // Gate: rival does NOT move until player types first key
+  const [rivalStarted, setRivalStarted] = useState<boolean>(false);
 
   // Match state
   const [isFinished, setIsFinished] = useState<boolean>(false);
@@ -61,14 +66,13 @@ export function useSimpleDuel({
 
   const diffConfig = RIVAL_DIFFICULTIES[difficulty] || RIVAL_DIFFICULTIES.equal;
   const basePlayerWpm = calibration?.netWpm || 65;
-  const rivalTargetWpm = Math.max(25, Math.round(basePlayerWpm * diffConfig.multiplier));
   const rivalName = `RIVAL // ${diffConfig.label}`;
 
   const currentWordText = wordsList[playerWordIndex] || '';
   const upcomingWords = wordsList.slice(playerWordIndex + 1, playerWordIndex + 6);
   const rivalActiveWordText = wordsList[rivalWordIndex] || '';
 
-  // WPM calculation ticker
+  // WPM calculation ticker — gates on startTimeRef (set on first keypress)
   useEffect(() => {
     if (!enabled || isFinished || !startTimeRef.current) return;
 
@@ -135,9 +139,9 @@ export function useSimpleDuel({
     ]
   );
 
-  // Rival AI typing loop
+  // Rival AI typing loop — only starts when rivalStarted becomes true
   useEffect(() => {
-    if (!enabled || isFinished) return;
+    if (!enabled || isFinished || !rivalStarted) return;
 
     const scheduleNextRivalChar = () => {
       if (isFinished) return;
@@ -145,7 +149,7 @@ export function useSimpleDuel({
       // Characters per second = (WPM * 5) / 60
       const charsPerSec = (rivalTargetWpm * 5) / 60;
       const baseDelayMs = 1000 / charsPerSec;
-      // Add natural +/- 20% jitter
+      // Add natural +/- 20% jitter for human feel
       const jitter = (Math.random() - 0.5) * (baseDelayMs * 0.4);
       const delay = Math.max(40, baseDelayMs + jitter);
 
@@ -182,7 +186,7 @@ export function useSimpleDuel({
         clearTimeout(rivalTimerRef.current);
       }
     };
-  }, [enabled, isFinished, rivalWordIndex, rivalTargetWpm, wordsList, endDuel]);
+  }, [enabled, isFinished, rivalStarted, rivalWordIndex, rivalTargetWpm, wordsList, endDuel]);
 
   // Player keystroke listener
   useEffect(() => {
@@ -191,13 +195,15 @@ export function useSimpleDuel({
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.ctrlKey || e.altKey || e.metaKey) return;
       if (e.key === 'Tab' || e.key === 'Escape') return;
+      if (e.key.length !== 1) return;
 
+      e.preventDefault();
+
+      // First valid keypress: start both player timer AND rival
       if (!startTimeRef.current) {
         startTimeRef.current = Date.now();
+        setRivalStarted(true);
       }
-
-      if (e.key.length !== 1) return;
-      e.preventDefault();
 
       const targetChar = currentWordText[typedIndex];
       const isCorrect = e.key === targetChar;
@@ -244,7 +250,7 @@ export function useSimpleDuel({
     endDuel,
   ]);
 
-  // Reset match
+  // Reset match — draw fresh rival WPM, reset rivalStarted gate
   const resetDuel = useCallback(() => {
     setWordsList(generateWordList(TARGET_WORDS_COUNT));
     setPlayerWordIndex(0);
@@ -258,6 +264,10 @@ export function useSimpleDuel({
 
     setRivalWordIndex(0);
     setRivalCharIndex(0);
+    setRivalStarted(false);
+
+    // Draw fresh WPM for the new match
+    setRivalTargetWpm(drawRivalWpm(calibration, difficulty));
 
     setIsFinished(false);
     setDuelResult(null);
@@ -267,7 +277,7 @@ export function useSimpleDuel({
       clearTimeout(rivalTimerRef.current);
       rivalTimerRef.current = null;
     }
-  }, []);
+  }, [calibration, difficulty]);
 
   const accuracy = totalKeystrokes > 0
     ? Math.round((correctKeystrokes / totalKeystrokes) * 100)
@@ -279,6 +289,7 @@ export function useSimpleDuel({
     upcomingWords,
     difficulty,
     duelResult,
+    gameStarted: rivalStarted,
     playerStats: {
       wpm: currentWpm || basePlayerWpm,
       accuracy,

@@ -42,12 +42,34 @@ export const RIVAL_DIFFICULTIES: Record<RivalDifficultyLevel, DifficultyConfig> 
   },
 };
 
+/**
+ * Draws a fresh rival WPM for a single match.
+ * Applies a [-20, +5] variance window around the base WPM so every match
+ * feels different — the rival is never a perfectly predictable robot.
+ * Minimum 15 WPM to avoid an unplayably slow experience.
+ */
+export function drawRivalWpm(
+  calibration: UserCalibration | null,
+  difficulty: RivalDifficultyLevel = 'equal'
+): number {
+  const config = RIVAL_DIFFICULTIES[difficulty] || RIVAL_DIFFICULTIES.equal;
+  const basePlayerWpm = calibration?.netWpm ?? 65;
+  const baseWpm = Math.max(25, Math.round(basePlayerWpm * config.multiplier));
+
+  // Variance window: -20 to +5 (negative-skewed — rivals are occasionally easier, rarely harder)
+  const varianceLow = -20;
+  const varianceHigh = 5;
+  const variance = Math.round(varianceLow + Math.random() * (varianceHigh - varianceLow));
+
+  return Math.max(15, baseWpm + variance);
+}
+
 export function createAdaptiveRivalProfile(
   calibration: UserCalibration,
   difficulty: RivalDifficultyLevel = 'equal'
 ): BotProfile {
   const config = RIVAL_DIFFICULTIES[difficulty] || RIVAL_DIFFICULTIES.equal;
-  const rivalWpm = Math.max(25, Math.round(calibration.netWpm * config.multiplier));
+  const rivalWpm = drawRivalWpm(calibration, difficulty);
   const rivalAccuracy = Math.min(0.99, Math.max(0.88, (calibration.accuracy / 100) * 0.98));
 
   const titles: Record<RivalDifficultyLevel, string> = {
