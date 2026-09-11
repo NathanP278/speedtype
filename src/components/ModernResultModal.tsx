@@ -4,6 +4,7 @@ import { RivalDifficultyLevel, RIVAL_DIFFICULTIES } from '../engine/adaptiveRiva
 export interface DuelResultData {
   winner: 'player' | 'rival';
   playerWpm: number;
+  playerRawWpm?: number;
   playerAccuracy: number;
   playerMistakes: number;
   rivalWpm: number;
@@ -79,8 +80,13 @@ export const ModernResultModal: React.FC<ModernResultModalProps> = ({
               YOU (PLAYER)
             </span>
             <span className="text-3xl font-black text-[var(--theme-text)] block my-1">
-              {result.playerWpm} <span className="text-xs font-normal text-zinc-400">WPM</span>
+              {result.playerWpm} <span className="text-xs font-normal text-zinc-400">NET WPM</span>
             </span>
+            {result.playerRawWpm !== undefined && (
+              <span className="text-[10px] text-zinc-500 block mb-1">
+                Raw: {result.playerRawWpm} WPM (unpenalized)
+              </span>
+            )}
             <div className="flex justify-between text-[11px] text-zinc-400 mt-2 border-t border-zinc-800/80 pt-2">
               <span>Accuracy:</span>
               <strong className="text-white">{result.playerAccuracy}%</strong>
@@ -98,6 +104,9 @@ export const ModernResultModal: React.FC<ModernResultModalProps> = ({
             </span>
             <span className="text-3xl font-black text-rose-400 block my-1">
               {result.rivalWpm} <span className="text-xs font-normal text-zinc-400">WPM</span>
+            </span>
+            <span className="text-[10px] text-zinc-500 block mb-1">
+              Target tempo ({diffConfig.badge})
             </span>
             <div className="flex justify-between text-[11px] text-zinc-400 mt-2 border-t border-zinc-800/80 pt-2">
               <span>Difficulty:</span>
@@ -124,7 +133,7 @@ export const ModernResultModal: React.FC<ModernResultModalProps> = ({
                   key={level}
                   type="button"
                   onClick={() => onSelectDifficulty(level)}
-                  className={`px-2 py-1.5 rounded-lg border text-center text-xs transition-all ${
+                  className={`px-2 py-1.5 rounded-lg border text-center text-xs transition-all focus-ring ${
                     isSelected
                       ? 'border-[var(--theme-text)] bg-zinc-900 text-white font-bold shadow-sm'
                       : 'border-zinc-800/80 bg-zinc-950 text-zinc-500 hover:text-zinc-300 hover:border-zinc-700'
@@ -143,7 +152,7 @@ export const ModernResultModal: React.FC<ModernResultModalProps> = ({
           <button
             type="button"
             onClick={onRematch}
-            className="w-full sm:w-auto px-8 py-3 bg-[var(--theme-text)] text-black font-bold text-sm rounded-xl hover:brightness-110 active:scale-95 transition-all tracking-wider uppercase flex items-center justify-center gap-2 shadow-lg"
+            className="w-full sm:w-auto px-8 py-3 bg-[var(--theme-text)] text-black font-bold text-sm rounded-xl hover:brightness-110 active:scale-95 transition-all tracking-wider uppercase flex items-center justify-center gap-2 shadow-lg focus-ring"
           >
             <span>[PLAY AGAIN]</span>
             <span className="text-[10px] opacity-80 border border-black/30 px-1.5 py-0.5 rounded">
@@ -154,7 +163,7 @@ export const ModernResultModal: React.FC<ModernResultModalProps> = ({
           <button
             type="button"
             onClick={onRetest}
-            className="w-full sm:w-auto px-4 py-3 border border-zinc-800 hover:border-zinc-600 text-zinc-400 hover:text-white text-xs rounded-xl transition-colors"
+            className="w-full sm:w-auto px-4 py-3 border border-zinc-800 hover:border-zinc-600 text-zinc-400 hover:text-white text-xs rounded-xl transition-colors focus-ring"
           >
             [RETEST SPEED]
           </button>

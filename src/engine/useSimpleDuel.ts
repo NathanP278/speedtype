@@ -126,6 +126,7 @@ export function useSimpleDuel({
       const result: DuelResultData = {
         winner,
         playerWpm: finalPlayerWpm,
+        playerRawWpm: rawCurrentWpm || finalPlayerWpm,
         playerAccuracy: accuracy,
         playerMistakes: mistakes,
         rivalWpm: rivalTargetWpm,
