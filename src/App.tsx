@@ -14,7 +14,7 @@ import { LeaderboardModal } from './components/LeaderboardModal.tsx';
 import { ChallengeModal } from './components/ChallengeModal.tsx';
 import { ChallengeGhostRunner } from './social/challengeCode.ts';
 import { useAuth } from './auth/useAuth.ts';
-import { submitLeaderboardEntry } from './profile/leaderboard.ts';
+import { submitScore } from './services/leaderboardService.ts';
 import { useEconomy } from './economy/useEconomy.ts';
 import { loadDossier, recordMatchInDossier, DossierData } from './social/rivalryDossier.ts';
 import {
@@ -102,16 +102,9 @@ export function App() {
       const earnedKp = isWin ? Math.round(playerWpm * 1.5) : Math.round(playerWpm * 0.5);
       economy.awardKp(earnedKp);
 
-      // Submit to leaderboard if user is authenticated
+      // Submit to cloud/local leaderboard service if user is authenticated
       if (auth.user) {
-        submitLeaderboardEntry({
-          username: auth.user.username,
-          avatar: auth.user.avatar,
-          netWpm: playerWpm,
-          accuracy: duel.playerStats.accuracy,
-          difficulty,
-          timestamp: Date.now(),
-        });
+        submitScore(auth.user, playerWpm, duel.playerStats.accuracy, difficulty);
       }
 
       setDossier((prev) =>
