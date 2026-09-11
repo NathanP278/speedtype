@@ -138,8 +138,8 @@ export const TournamentLounge: React.FC<TournamentLoungeProps> = ({
       c2Word: w2,
       c1Typed: '',
       c2Typed: '',
-      c1Wpm: c1 ? c1.baseWpm : 100,
-      c2Wpm: c2 ? c2.baseWpm : 100,
+      c1Wpm: c1 ? Math.max(15, c1.baseWpm + Math.round(-20 + Math.random() * 25)) : 100,
+      c2Wpm: c2 ? Math.max(15, c2.baseWpm + Math.round(-20 + Math.random() * 25)) : 100,
       c1TypoFlash: false,
       c2TypoFlash: false,
       isSimulating: false,
@@ -245,9 +245,12 @@ export const TournamentLounge: React.FC<TournamentLoungeProps> = ({
     const c1 = selectedMatch.contestant1;
     const c2 = selectedMatch.contestant2;
 
+    const c1EffectiveWpm = Math.max(15, c1.baseWpm + Math.round(-20 + Math.random() * 25));
+    const c2EffectiveWpm = Math.max(15, c2.baseWpm + Math.round(-20 + Math.random() * 25));
+
     // Probability weighted by WPM and accuracy
-    const p1 = c1.baseWpm * c1.accuracy;
-    const p2 = c2.baseWpm * c2.accuracy;
+    const p1 = c1EffectiveWpm * c1.accuracy;
+    const p2 = c2EffectiveWpm * c2.accuracy;
     const c1WinProb = p1 / (p1 + p2);
     const winner = Math.random() < c1WinProb ? c1 : c2;
 
@@ -261,6 +264,9 @@ export const TournamentLounge: React.FC<TournamentLoungeProps> = ({
 
     const c1 = selectedMatch.contestant1;
     const c2 = selectedMatch.contestant2;
+
+    const c1EffectiveWpm = Math.max(15, c1.baseWpm + Math.round(-20 + Math.random() * 25));
+    const c2EffectiveWpm = Math.max(15, c2.baseWpm + Math.round(-20 + Math.random() * 25));
 
     if (simTimerRef.current !== null) {
       window.clearInterval(simTimerRef.current);
@@ -282,8 +288,8 @@ export const TournamentLounge: React.FC<TournamentLoungeProps> = ({
       c2Word: initialWord2,
       c1Typed: '',
       c2Typed: '',
-      c1Wpm: c1.baseWpm,
-      c2Wpm: c2.baseWpm,
+      c1Wpm: c1EffectiveWpm,
+      c2Wpm: c2EffectiveWpm,
       c1TypoFlash: false,
       c2TypoFlash: false,
       isSimulating: true,
@@ -318,8 +324,8 @@ export const TournamentLounge: React.FC<TournamentLoungeProps> = ({
       if (c2TypoCooldown > 0) c2TypoCooldown -= deltaMs;
 
       // Speed in chars/ms: (WPM * 5 chars per word) / 60,000 ms
-      const c1CharsPerMs = (c1.baseWpm * 5) / 60000;
-      const c2CharsPerMs = (c2.baseWpm * 5) / 60000;
+      const c1CharsPerMs = (c1EffectiveWpm * 5) / 60000;
+      const c2CharsPerMs = (c2EffectiveWpm * 5) / 60000;
 
       let nextC1Typed = curr.c1Typed;
       let nextC2Typed = curr.c2Typed;
@@ -832,7 +838,7 @@ export const TournamentLounge: React.FC<TournamentLoungeProps> = ({
                             <div className="space-y-1 mb-3">
                               <div className="flex justify-between text-[11px] text-zinc-400">
                                 <span>INTEGRITY: {Math.max(0, Math.round(duelState.c1Health))}%</span>
-                                <span>{c1.baseWpm} WPM</span>
+                                <span className="font-bold text-[var(--theme-text)]">{duelState.c1Wpm} WPM</span>
                               </div>
                               <div className="h-2 w-full bg-zinc-900 rounded overflow-hidden">
                                 <div
@@ -888,7 +894,7 @@ export const TournamentLounge: React.FC<TournamentLoungeProps> = ({
                             <div className="space-y-1 mb-3">
                               <div className="flex justify-between text-[11px] text-zinc-400">
                                 <span>INTEGRITY: {Math.max(0, Math.round(duelState.c2Health))}%</span>
-                                <span>{c2.baseWpm} WPM</span>
+                                <span className="font-bold text-[var(--theme-text)]">{duelState.c2Wpm} WPM</span>
                               </div>
                               <div className="h-2 w-full bg-zinc-900 rounded overflow-hidden">
                                 <div
