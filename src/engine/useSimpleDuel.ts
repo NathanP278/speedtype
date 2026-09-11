@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { UserCalibration } from './calibration.ts';
+import { UserCalibration, calculateReadingAdjustedWpm } from './calibration.ts';
 import { RivalDifficultyLevel, RIVAL_DIFFICULTIES, drawRivalWpm } from './adaptiveRival.ts';
 import { DuelResultData } from '../components/ModernResultModal.tsx';
 import { soundEngine } from '../audio/soundEngine.ts';
@@ -47,6 +47,7 @@ export function useSimpleDuel({
   const [correctKeystrokes, setCorrectKeystrokes] = useState<number>(0);
   const [mistakes, setMistakes] = useState<number>(0);
   const [currentWpm, setCurrentWpm] = useState<number>(0);
+  const [rawCurrentWpm, setRawCurrentWpm] = useState<number>(0);
 
   // Rival AI state — WPM drawn fresh per match
   const [rivalTargetWpm, setRivalTargetWpm] = useState<number>(() =>
@@ -77,15 +78,20 @@ export function useSimpleDuel({
     if (!enabled || isFinished || !startTimeRef.current) return;
 
     const interval = setInterval(() => {
-      const elapsedMinutes = (Date.now() - startTimeRef.current!) / 60000;
+      const elapsedSec = (Date.now() - startTimeRef.current!) / 1000;
+      const elapsedMinutes = elapsedSec / 60;
       if (elapsedMinutes > 0.01) {
-        const liveWpm = Math.round((correctKeystrokes / 5) / elapsedMinutes);
-        setCurrentWpm(liveWpm);
+        const rawWpm = Math.round((correctKeystrokes / 5) / elapsedMinutes);
+        // Reading-adjusted: subtracts 50ms per completed word, blended 70/30 with raw
+        const adjusted = calculateReadingAdjustedWpm(playerWordIndex, elapsedSec);
+        const blended = Math.round(adjusted * 0.7 + rawWpm * 0.3);
+        setCurrentWpm(blended);
+        setRawCurrentWpm(rawWpm);
       }
     }, 200);
 
     return () => clearInterval(interval);
-  }, [enabled, isFinished, correctKeystrokes]);
+  }, [enabled, isFinished, correctKeystrokes, playerWordIndex]);
 
   // Finish Match handler
   const endDuel = useCallback(
@@ -261,6 +267,7 @@ export function useSimpleDuel({
     setCorrectKeystrokes(0);
     setMistakes(0);
     setCurrentWpm(0);
+    setRawCurrentWpm(0);
 
     setRivalWordIndex(0);
     setRivalCharIndex(0);
@@ -292,6 +299,7 @@ export function useSimpleDuel({
     gameStarted: rivalStarted,
     playerStats: {
       wpm: currentWpm || basePlayerWpm,
+      rawWpm: rawCurrentWpm,
       accuracy,
       streak: cleanStreak,
       completedCount: playerWordIndex,

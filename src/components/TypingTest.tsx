@@ -47,7 +47,7 @@ export const TypingTest: React.FC<TypingTestProps> = ({
     inputRef.current?.focus();
   }, []);
 
-  // Timer countdown
+  // Timer countdown — only starts after first keystroke (startTime set)
   useEffect(() => {
     if (!startTime || isFinished) return;
 
@@ -65,32 +65,37 @@ export const TypingTest: React.FC<TypingTestProps> = ({
     return () => clearInterval(interval);
   }, [startTime, isFinished]);
 
-  // Compute live stats
+  /**
+   * Compute live stats from the current input value.
+   * Errors = characters in wrong position at this snapshot
+   * (uncorrected errors — backspace already fixed those in inputHistory).
+   */
   const computeStats = useCallback(
     (currentInput: string, elapsedSeconds: number) => {
       const totalChars = currentInput.length;
       let correctChars = 0;
-      let errors = 0;
+      let uncorrectedErrors = 0;
 
       for (let i = 0; i < totalChars; i++) {
         if (currentInput[i] === targetText[i]) {
           correctChars++;
         } else {
-          errors++;
+          uncorrectedErrors++;
         }
       }
 
       const grossWpm = calculateGrossWpm(totalChars, elapsedSeconds);
       const accuracy = calculateAccuracy(correctChars, totalChars);
-      const netWpm = calculateNetWpm(correctChars, errors, elapsedSeconds);
+      const netWpm = calculateNetWpm(correctChars, uncorrectedErrors, elapsedSeconds);
 
       return {
         grossWpm,
+        rawWpm: grossWpm,  // rawWpm = gross (all keystrokes, no error penalty)
         netWpm,
         accuracy,
         totalKeystrokes: totalChars,
         correctKeystrokes: correctChars,
-        errors,
+        errors: uncorrectedErrors,
       };
     },
     [targetText]
@@ -119,24 +124,30 @@ export const TypingTest: React.FC<TypingTestProps> = ({
     if (isFinished) return;
 
     const value = e.target.value;
+    // Clamp length to passage — allow backspace freely, block typing past end
     if (value.length > targetText.length) return;
 
-    if (!startTime) {
+    // Start timer on first character typed
+    if (!startTime && value.length > 0) {
       setStartTime(Date.now());
     }
 
-    const isMistype =
-      value.length > 0 && value[value.length - 1] !== targetText[value.length - 1];
+    const lastChar = value[value.length - 1];
+    const expectedChar = targetText[value.length - 1];
+    const isMistype = lastChar !== undefined && lastChar !== expectedChar;
 
-    if (isMistype) {
-      soundEngine.playMistype();
-    } else {
-      soundEngine.playKeystroke(value.length, false);
+    // Only play sound on new characters (not on backspace / deletion)
+    if (value.length > inputHistory.length) {
+      if (isMistype) {
+        soundEngine.playMistype();
+      } else {
+        soundEngine.playKeystroke(value.length, false);
+      }
     }
 
     setInputHistory(value);
 
-    // If completed entire text early
+    // Finished entire passage early
     if (value.length === targetText.length) {
       finishTest();
     }
@@ -157,11 +168,15 @@ export const TypingTest: React.FC<TypingTestProps> = ({
     : 1;
   const liveStats = computeStats(inputHistory, elapsedSeconds);
 
+  const netWpmRange = finalCalibration
+    ? `${Math.max(10, finalCalibration.netWpm - 20)}–${finalCalibration.netWpm + 5} WPM`
+    : '';
+
   return (
     <div
       ref={containerRef}
       onClick={() => inputRef.current?.focus()}
-      className="w-full max-w-3xl mx-auto p-6 md:p-8 bg-zinc-950/90 border border-zinc-800 rounded-xl shadow-2xl font-mono select-none transition-all flex flex-col justify-center my-auto"
+      className="w-full max-w-3xl mx-auto p-6 md:p-10 bg-zinc-950/90 border border-zinc-800 rounded-2xl shadow-2xl font-mono select-none transition-all flex flex-col justify-center my-auto"
     >
       {!isFinished ? (
         <>
@@ -175,7 +190,7 @@ export const TypingTest: React.FC<TypingTestProps> = ({
                 </h2>
               </div>
               <p className="text-xs text-zinc-400 mt-1">
-                Type naturally for 30s. We calculate your actual Net WPM (considering accuracy) to tune your Rival AI.
+                Type naturally for 30s. Backspace to correct typos — only uncorrected errors penalize your Net WPM.
               </p>
             </div>
 
@@ -190,12 +205,12 @@ export const TypingTest: React.FC<TypingTestProps> = ({
             )}
           </div>
 
-          {/* Live Metric Ribbon */}
+          {/* Live Metric Ribbon — 3 cols: Timer | Net WPM | Raw WPM | Accuracy */}
           <div className="grid grid-cols-4 gap-3 mb-6 text-center">
-            <div className="p-2.5 bg-black/60 border border-zinc-800 rounded-lg">
-              <span className="text-[10px] text-zinc-500 block uppercase">Timer</span>
+            <div className="p-3.5 bg-black/60 border border-zinc-800 rounded-xl">
+              <span className="text-[10px] text-zinc-500 block uppercase tracking-wider mb-1">Timer</span>
               <span
-                className={`text-xl font-bold ${
+                className={`text-2xl font-bold ${
                   secondsRemaining <= 5 ? 'text-red-400 animate-pulse' : 'text-zinc-200'
                 }`}
               >
@@ -203,57 +218,64 @@ export const TypingTest: React.FC<TypingTestProps> = ({
               </span>
             </div>
 
-            <div className="p-2.5 bg-black/60 border border-[var(--theme-border)] rounded-lg">
-              <span className="text-[10px] text-zinc-400 block uppercase font-bold">
-                Actual WPM
+            <div className="p-3.5 bg-black/60 border border-[var(--theme-border)] rounded-xl">
+              <span className="text-[10px] text-zinc-400 block uppercase tracking-wider font-bold mb-1">
+                Net WPM
               </span>
-              <span className="text-xl font-bold text-[var(--theme-text)] glow-subtle">
+              <span className="text-2xl font-bold text-[var(--theme-text)] glow-subtle">
                 {startTime ? liveStats.netWpm : '--'}
               </span>
             </div>
 
-            <div className="p-2.5 bg-black/60 border border-zinc-800 rounded-lg">
-              <span className="text-[10px] text-zinc-500 block uppercase">Accuracy</span>
-              <span className="text-xl font-bold text-cyan-400">
-                {startTime ? `${liveStats.accuracy}%` : '100%'}
-              </span>
-            </div>
-
-            <div className="p-2.5 bg-black/60 border border-zinc-800 rounded-lg">
-              <span className="text-[10px] text-zinc-500 block uppercase">Gross WPM</span>
-              <span className="text-xl font-bold text-zinc-400">
+            <div className="p-3.5 bg-black/60 border border-zinc-800 rounded-xl">
+              <span className="text-[10px] text-zinc-500 block uppercase tracking-wider mb-1">Raw WPM</span>
+              <span className="text-2xl font-bold text-zinc-300">
                 {startTime ? liveStats.grossWpm : '--'}
               </span>
             </div>
+
+            <div className="p-3.5 bg-black/60 border border-zinc-800 rounded-xl">
+              <span className="text-[10px] text-zinc-500 block uppercase tracking-wider mb-1">Accuracy</span>
+              <span className="text-2xl font-bold text-cyan-400">
+                {startTime ? `${liveStats.accuracy}%` : '100%'}
+              </span>
+            </div>
           </div>
 
-          {/* Target Passage Word Display */}
-          <div className="relative p-6 bg-black border border-zinc-800 rounded-lg mb-6 leading-relaxed text-lg md:text-xl font-mono tracking-wide cursor-text">
-            {targetText.split('').map((char, idx) => {
-              let charStyle = 'text-zinc-600';
-              const isTyped = idx < inputHistory.length;
-              const isCurrent = idx === inputHistory.length;
+          {/* Target Passage */}
+          <div className="relative p-8 bg-black border border-zinc-800 rounded-xl mb-6 leading-loose text-xl md:text-2xl font-mono tracking-wide cursor-text min-h-[160px]">
+            {!startTime && (
+              <span className="absolute inset-0 flex items-center justify-center text-zinc-600 text-base pointer-events-none">
+                ⚡ Start typing to begin the 30-second countdown…
+              </span>
+            )}
+            <span className={!startTime ? 'opacity-40' : ''}>
+              {targetText.split('').map((char, idx) => {
+                let charStyle = 'text-zinc-600';
+                const isTyped = idx < inputHistory.length;
+                const isCurrent = idx === inputHistory.length;
 
-              if (isTyped) {
-                if (inputHistory[idx] === char) {
-                  charStyle = 'text-[var(--theme-text)] font-semibold';
-                } else {
-                  charStyle = 'text-red-400 bg-red-950/50 underline decoration-red-500 font-bold';
+                if (isTyped) {
+                  if (inputHistory[idx] === char) {
+                    charStyle = 'text-[var(--theme-text)] font-semibold';
+                  } else {
+                    charStyle = 'text-red-400 bg-red-950/50 underline decoration-red-500 font-bold';
+                  }
                 }
-              }
 
-              return (
-                <span key={idx} className={`relative transition-colors ${charStyle}`}>
-                  {char}
-                  {isCurrent && (
-                    <span className="absolute left-0 bottom-0 top-0 w-[2px] bg-[var(--theme-text)] animate-pulse shadow-[0_0_8px_var(--theme-text)]" />
-                  )}
-                </span>
-              );
-            })}
+                return (
+                  <span key={idx} className={`relative transition-colors ${charStyle}`}>
+                    {char}
+                    {isCurrent && (
+                      <span className="absolute left-0 bottom-0 top-0 w-[2px] bg-[var(--theme-text)] animate-pulse shadow-[0_0_8px_var(--theme-text)]" />
+                    )}
+                  </span>
+                );
+              })}
+            </span>
           </div>
 
-          {/* Hidden/Native Input for focus */}
+          {/* Hidden input for focus capture */}
           <input
             ref={inputRef}
             type="text"
@@ -267,12 +289,12 @@ export const TypingTest: React.FC<TypingTestProps> = ({
             className="opacity-0 absolute -top-9999px left-0 w-1 h-1 pointer-events-none"
           />
 
-          {/* Help tip */}
+          {/* Help row */}
           <div className="flex justify-between items-center text-xs text-zinc-500 px-1">
             <span>
               {!startTime
-                ? '⚡ Start typing any key to begin countdown...'
-                : 'Keep typing! Errors reduce your actual net WPM.'}
+                ? 'Backspace to correct typos — only uncorrected errors count'
+                : 'Keep typing! Uncorrected errors reduce your Net WPM.'}
             </span>
             <button
               type="button"
@@ -294,19 +316,21 @@ export const TypingTest: React.FC<TypingTestProps> = ({
             YOUR CALIBRATED TYPING PROFILE
           </h3>
           <p className="text-xs text-zinc-400 max-w-md mx-auto mb-8">
-            Your speed has been benchmarked considering accuracy and error penalties. Your Rival AI is now calibrated to match this exact baseline.
+            Net WPM = Raw speed adjusted for uncorrected errors. Your Rival AI will now vary between{' '}
+            <strong className="text-white">{netWpmRange}</strong> each match.
           </p>
 
-          {/* Big Result Card */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-lg mx-auto mb-8">
+          {/* Result Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-lg mx-auto mb-4">
+            {/* Hero — Net WPM */}
             <div className="p-4 bg-black border-2 border-[var(--theme-text)] rounded-xl shadow-[0_0_25px_var(--theme-dim)]">
               <span className="text-[10px] text-zinc-400 uppercase block font-bold">
-                Actual Net Speed
+                Net WPM
               </span>
               <span className="text-4xl font-black text-[var(--theme-text)] glow-medium block my-1">
                 {finalCalibration?.netWpm}
               </span>
-              <span className="text-[10px] text-zinc-500">WORDS PER MINUTE</span>
+              <span className="text-[10px] text-zinc-500">ACCURACY-ADJUSTED</span>
             </div>
 
             <div className="p-4 bg-black border border-zinc-800 rounded-xl">
@@ -315,23 +339,25 @@ export const TypingTest: React.FC<TypingTestProps> = ({
                 {finalCalibration?.accuracy}%
               </span>
               <span className="text-[10px] text-zinc-500">
-                {finalCalibration?.correctKeystrokes}/{finalCalibration?.totalKeystrokes} KEYS
+                {finalCalibration?.correctKeystrokes}/{finalCalibration?.totalKeystrokes} CORRECT
               </span>
             </div>
 
             <div className="p-4 bg-black border border-zinc-800 rounded-xl">
-              <span className="text-[10px] text-zinc-500 uppercase block">Gross Speed</span>
+              <span className="text-[10px] text-zinc-500 uppercase block">Raw Speed</span>
               <span className="text-3xl font-bold text-zinc-300 block my-1">
-                {finalCalibration?.grossWpm}
+                {finalCalibration?.rawWpm}
               </span>
-              <span className="text-[10px] text-zinc-500">RAW WPM</span>
+              <span className="text-[10px] text-zinc-500">BEFORE PENALTIES</span>
             </div>
           </div>
 
-          {/* AI Rival Confirmation Notification */}
+          {/* Rival range notice */}
           <div className="p-3 bg-zinc-900/80 border border-zinc-800 rounded-lg max-w-md mx-auto mb-8 text-xs text-zinc-300 flex items-center justify-center gap-2">
-            <span className="text-amber-400 font-bold">⚡ RIVAL TUNED:</span>
-            <span>Rival AI target set to <strong>{finalCalibration?.netWpm} WPM</strong>.</span>
+            <span className="text-amber-400 font-bold">⚡ RIVAL RANGE:</span>
+            <span>
+              Each match rival draws <strong className="text-white">{netWpmRange}</strong> at random.
+            </span>
           </div>
 
           {/* Action Buttons */}
@@ -339,14 +365,14 @@ export const TypingTest: React.FC<TypingTestProps> = ({
             <button
               type="button"
               onClick={() => finalCalibration && onComplete(finalCalibration)}
-              className="w-full sm:w-auto px-8 py-3 bg-[var(--theme-text)] text-black font-bold text-sm rounded-lg hover:brightness-110 shadow-[0_0_20px_var(--theme-dim)] transition-all tracking-wider"
+              className="w-full sm:w-auto px-8 py-3 bg-[var(--theme-text)] text-black font-bold text-sm rounded-xl hover:brightness-110 shadow-[0_0_20px_var(--theme-dim)] transition-all tracking-wider"
             >
               [DUEL YOUR RIVAL NOW]
             </button>
             <button
               type="button"
               onClick={resetTest}
-              className="w-full sm:w-auto px-5 py-3 border border-zinc-700 text-zinc-300 hover:text-white hover:border-zinc-500 text-xs rounded-lg transition-colors"
+              className="w-full sm:w-auto px-5 py-3 border border-zinc-700 text-zinc-300 hover:text-white hover:border-zinc-500 text-xs rounded-xl transition-colors"
             >
               [RETEST BENCHMARK]
             </button>
