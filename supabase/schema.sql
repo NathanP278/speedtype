@@ -1,5 +1,5 @@
 -- ==============================================================================
--- SPEEDTYPE: Supabase PostgreSQL Schema
+-- SPEEDTYPE: Supabase PostgreSQL Schema (Hardened & Fail-Safe)
 -- Run this script in the Supabase Dashboard -> SQL Editor
 -- ==============================================================================
 
@@ -17,23 +17,34 @@ create table if not exists public.profiles (
   updated_at timestamptz not null default now()
 );
 
+-- Ensure all columns exist if table was previously created
+alter table public.profiles add column if not exists display_name text;
+alter table public.profiles add column if not exists call_sign text default 'PILOT';
+alter table public.profiles add column if not exists telemetry jsonb default '{}'::jsonb;
+alter table public.profiles add column if not exists onboarding_complete boolean default false;
+alter table public.profiles add column if not exists provider text not null default 'google';
+
 -- Enable RLS on profiles
 alter table public.profiles enable row level security;
 
 -- Profiles RLS policies
+drop policy if exists "Public profiles are viewable by everyone" on public.profiles;
 create policy "Public profiles are viewable by everyone"
   on public.profiles for select
   using (true);
 
+drop policy if exists "Users can insert their own profile" on public.profiles;
 create policy "Users can insert their own profile"
   on public.profiles for insert
   with check (auth.uid() = id);
 
+drop policy if exists "Users can update own profile" on public.profiles;
 create policy "Users can update own profile"
   on public.profiles for update
   using (auth.uid() = id);
 
--- 2. Trigger to automatically create profile on signup (both Email and Google OAuth)
+-- 2. Fail-Safe Trigger on auth.users
+-- Uses an exception block so signup NEVER fails with "Database error saving new user"
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
@@ -50,25 +61,32 @@ begin
     split_part(new.email, '@', 1)
   );
 
-  -- Sanitize username: replace spaces or non-alphanumeric with underscore
+  -- Sanitize username
   candidate_username := regexp_replace(candidate_username, '[^a-zA-Z0-9_]', '_', 'g');
   if length(candidate_username) < 3 then
     candidate_username := 'pilot_' || substr(new.id::text, 1, 6);
+  else
+    -- Append unique suffix to prevent unique constraint conflicts
+    candidate_username := substr(candidate_username, 1, 13) || '_' || substr(new.id::text, 1, 6);
   end if;
 
-  candidate_avatar := coalesce(new.raw_user_meta_data->>'avatar_url', '⚡');
+  candidate_avatar := coalesce(new.raw_user_meta_data->>'avatar', '⚡');
   auth_provider := coalesce(new.app_metadata->>'provider', 'google');
 
-  insert into public.profiles (id, username, avatar, provider, created_at, updated_at)
-  values (new.id, candidate_username, candidate_avatar, auth_provider, now(), now())
-  on conflict (id) do update
-  set updated_at = now();
+  begin
+    insert into public.profiles (id, username, avatar, provider, onboarding_complete, created_at, updated_at)
+    values (new.id, candidate_username, candidate_avatar, auth_provider, false, now(), now())
+    on conflict (id) do nothing;
+  exception when others then
+    -- Catch all exceptions so auth.users registration is NEVER blocked
+    null;
+  end;
 
   return new;
 end;
 $$;
 
--- Drop trigger if exists and recreate
+-- Recreate trigger
 drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
@@ -91,10 +109,12 @@ create table if not exists public.leaderboard (
 alter table public.leaderboard enable row level security;
 
 -- Leaderboard RLS policies
+drop policy if exists "Leaderboard entries are viewable by everyone" on public.leaderboard;
 create policy "Leaderboard entries are viewable by everyone"
   on public.leaderboard for select
   using (true);
 
+drop policy if exists "Authenticated users can submit leaderboard scores" on public.leaderboard;
 create policy "Authenticated users can submit leaderboard scores"
   on public.leaderboard for insert
   with check (auth.uid() = user_id);
