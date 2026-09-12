@@ -53,6 +53,11 @@ The stack employs Vite + React + TypeScript + Tailwind CSS + HTML5 Canvas + Web 
 - **Plan 16.2 (Wave 2)**: Spatial Elegance & Uncluttered Fluid Mobile Layout (eradicate duplicate active word bar, minimalist top race beam, fluid hero word breathing room).
 - **Plan 16.3 (Wave 3)**: Calibration Polish & Automated Input Validation Suite (TypingTest mobile spacing, rapid-fire double-letter test suite, full test runner integration).
 
+### Phase 17: Multi-Device Calibration Profiles & Mobile Hardening
+- **Plan 17.1 (Wave 1)**: Multi-Device Calibration Storage, Anti-Mismatch Gate & Device Profile Mapping (per-device calibration map, hardware profile verification, mismatch alert banner).
+- **Plan 17.2 (Wave 2)**: Zero-Lag Controlled Buffer Input Pipeline & Rapid IME Synchronization (controlled value buffer diffing, WebKit QuickType IPC harmonization, touch focus lock).
+- **Plan 17.3 (Wave 3)**: Mobile Viewport Anti-Cutoff Geometry, Safe-Area Anchoring & Automated Verification (window scroll lock to 0,0, short-viewport auto-scaling, multi-device test suite).
+
 ---
 
 ## Phase Dependencies
@@ -67,6 +72,7 @@ flowchart TD
     P13 --> P14["Phase 14: Google Auth Exclusive & Offline Mode Elimination"]
     P14 --> P15["Phase 15: Universal Device Adaptation & Cross-Platform Engine"]
     P15 --> P16["Phase 16: Zero-Latency Mobile Input Engine & Fluid Spatial UI Architecture"]
+    P16 --> P17["Phase 17: Multi-Device Calibration Profiles & Mobile Hardening"]
 ```
 
 
