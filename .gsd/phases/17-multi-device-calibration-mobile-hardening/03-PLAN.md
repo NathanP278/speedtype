@@ -1,91 +1,99 @@
 ---
 phase: 17
 plan: 3
-wave: 3
+wave: 2
 depends_on:
   - 17.1
-  - 17.2
 files_modified:
-  - src/engine/useDeviceProfile.ts
+  - src/components/TerminalViewport.tsx
   - src/components/ModernDuelArena.tsx
-  - src/components/TypingTest.tsx
-  - test/multiDeviceCalibration.test.ts
-  - test/run-all-tests.ts
+  - src/components/VirtualKeyboardDock.tsx
 autonomous: true
 user_setup: []
 
 must_haves:
   truths:
-    - "iOS Safari window scroll is automatically locked and clamped to (0, 0) during virtual keyboard activation, preventing the header and race strip from being pushed off-screen."
-    - "Arena and calibration layout dynamically scale within compact viewports (<450px visual height), ensuring hero word, race track, and input are never visually cut off."
-    - "Automated unit test suite verifies multi-device calibration storage, device switching mismatch detection, and controlled buffer diffing."
-    - "All 193+ test assertions pass cleanly with zero regressions."
+    - "Mobile UI looks completely intentional, native, and uncluttered, rather than a cramped desktop site shrunken down."
+    - "Header on mobile hides horizontal badge pileup (DeviceBadge, avatar button, calibration badge moved to menu modal), showing only clean brand and menu icon."
+    - "Hero Word is large, prominent, and high-contrast, with readable untyped characters (zinc-400 instead of near-invisible zinc-700)."
+    - "Upcoming words are rendered as a flowing text preview (render · player · beacon) rather than clumsy button-like cards."
+    - "Giant 120px desktop stats card at the bottom is replaced on mobile with an ultra-sleek, compact combat pulse bar."
+    - "Floating virtual keyboard dock toggle button that overlaps the footer on mobile is completely eradicated."
   artifacts:
-    - "src/engine/useDeviceProfile.ts"
-    - "test/multiDeviceCalibration.test.ts"
-    - "test/run-all-tests.ts"
+    - "src/components/TerminalViewport.tsx"
+    - "src/components/ModernDuelArena.tsx"
+    - "src/components/VirtualKeyboardDock.tsx"
 ---
 
-# Plan 17.3: Mobile Viewport Anti-Cutoff Geometry, Safe-Area Anchoring & Automated Verification
+# Plan 17.3: Intentional Mobile UI Overhaul & Spatial Aesthetics
 
 <objective>
-Eliminate mobile viewport clipping and scrolling cutoffs by locking window scroll coordinates to (0, 0) on visualViewport changes, implement dynamic scaling for ultra-short mobile viewports, and verify all device calibration and input hardening features with automated tests.
+Execute a complete visual and spatial redesign of the mobile user interface to make it look intentional, modern, and spacious. Eradicate header badge crowding, replace button-like upcoming word cards with a flowing ribbon, make untyped characters high-contrast and readable, and replace the giant bottom stats card with a sleek combat pulse HUD.
 
-Purpose: Fix the visual cutoff where iOS Safari scrolls the top of the app off-screen when the keyboard appears, and provide automated proof of device switching logic.
-Output: Hardened useDeviceProfile hook with anti-cutoff scroll locking, responsive viewport scaling, and comprehensive automated test suite.
+Purpose: Directly address the user's feedback and uploaded screenshots: "please fix the UI for mobile devices cause I promise it looks so bad. It looks so cramped together... UI doesn't look intentional for mobile".
+Output: Redesigned TerminalViewport header, high-contrast ModernDuelArena, flowing word ribbon, and sleek mobile combat bar.
 </objective>
 
 <context>
 Load for context:
 - .gsd/SPEC.md
-- src/engine/useDeviceProfile.ts
+- src/components/TerminalViewport.tsx
 - src/components/ModernDuelArena.tsx
-- src/components/TypingTest.tsx
-- test/run-all-tests.ts
+- src/components/VirtualKeyboardDock.tsx
 </context>
 
 <tasks>
 
 <task type="auto">
-  <name>Implement iOS Safari Anti-Cutoff Scroll Lock & Dynamic Viewport Height</name>
-  <files>src/engine/useDeviceProfile.ts, src/components/ModernDuelArena.tsx</files>
+  <name>Redesign TerminalViewport Header for Mobile Intent</name>
+  <files>src/components/TerminalViewport.tsx</files>
   <action>
-    1. In `src/engine/useDeviceProfile.ts`:
-       - In `handleVvChange` (listening to `visualViewport` resize and scroll):
-         - On iOS Safari, opening the keyboard triggers an automatic page scroll (`window.scrollY > 0`), which pushes the header and top race track off-screen with no way to scroll back.
-         - Enforce: `if (typeof window !== 'undefined' && window.scrollY !== 0) { window.scrollTo(0, 0); }`
-         - Lock `document.body.scrollTop = 0` and `document.documentElement.scrollTop = 0`.
-         - Set CSS variable `--visual-viewport-offset-top` to `vv.offsetTop`.
-    2. In `src/components/ModernDuelArena.tsx`:
-       - Handle short viewports (visual viewport height < 450px):
-         - Ensure race track, hero word, and upcoming words scale proportionally without vertical overflow.
-         - Set `min-h-0` and responsive margins so the entire battle UI stays 100% visible between the header and keyboard.
+    Refactor `TerminalViewport.tsx` header layout:
+    1. Eradicate Mobile Badge Crowding:
+       - On mobile (`sm:hidden`), hide the desktop badge strip: `DeviceBadge`, the wide Google Avatar username pill, and the `⚡ Benchmark 60 WPM` pill.
+       - Showing 4 horizontal pills on a 390px iPhone causes them to collide, overlap, and truncate.
+       - Keep mobile header clean and balanced:
+         - Left: `⚡ SPEEDTYPE`
+         - Right: `[MODES ☰]` button
+       - Move account details, device telemetry, and calibration status into the clean `MenuModal` where mobile users can access them comfortably.
+    2. Desktop & Tablet:
+       - Keep the full badge strip on `hidden sm:flex` for desktop/tablet viewports where space is plentiful.
+    AVOID: Forcing desktop pill badges into narrow mobile viewports.
   </action>
   <verify>
-    Run `npm run build` to verify type safety and layout integrity.
+    Run `npm run build` to verify clean compilation and layout.
   </verify>
   <done>
-    Viewport never scrolls off-screen on keyboard pop-up, and arena elements remain fully visible without clipping.
+    Mobile header is clean, sleek, and free of cramped badges on phone screens.
   </done>
 </task>
 
 <task type="auto">
-  <name>Build Automated Multi-Device Calibration & Input Hardening Test Suite</name>
-  <files>test/multiDeviceCalibration.test.ts, test/run-all-tests.ts</files>
+  <name>Overhaul ModernDuelArena for Mobile Ergonomics & High Contrast</name>
+  <files>src/components/ModernDuelArena.tsx, src/components/VirtualKeyboardDock.tsx</files>
   <action>
-    1. Create `test/multiDeviceCalibration.test.ts`:
-       - Test per-device calibration persistence: verify mobile, tablet, and desktop calibrations save and load independently.
-       - Test device mismatch detection: verify that switching from desktop to mobile flags `hasMismatch = true` and requires calibration.
-       - Test returning to previously calibrated device: verify switching back restores tuned benchmark.
-       - Test controlled buffer diffing: verify typed character extraction, multi-character word insertion, and backspace handling.
-       - Test anti-cutoff window scroll clamp logic.
-    2. Register the suite in `test/run-all-tests.ts`.
+    Refactor `ModernDuelArena.tsx`:
+    1. Hero Word High-Contrast Typography:
+       - Fix the low-contrast issue where untyped letters were `text-zinc-700` (nearly invisible black-on-black).
+       - Style untyped letters in crisp, readable `text-zinc-400` with subtle opacity so the pilot can easily read upcoming letters in all lighting conditions.
+       - Current letter receives a vibrant theme caret pulse; typed letters glow with phosphor radiance.
+       - Enlarge typography on mobile: `text-5xl xs:text-6xl sm:text-7xl` with generous letter-spacing (`tracking-wider`).
+    2. Eliminate Clumsy Upcoming Word Cards:
+       - Replace the 4 separate button-like pill boxes (`[screen] [render] [player] [beacon]`) with an elegant, flowing typography ribbon:
+         `render  ·  player  ·  beacon`
+         with soft zinc-500 typography and zero bulky borders.
+    3. Sleek Mobile Combat Pulse Bar:
+       - Replace the heavy 120px desktop card (`YOU: 60 WPM • ACC: 100% • STREAK: 0`, `RIVAL: RIVAL // EVEN MATCH`, `[Restart] [Recalibrate]`) with a streamlined mobile combat bar on phones:
+         - A slim, elegant 32px pill: `YOU 60 WPM  •  RIVAL 63 WPM` with quick `[↺]` restart icon.
+         - On desktop/tablet (`hidden sm:flex`), retain the extended ambient stats bar.
+    4. Clean Floating Dock Trigger:
+       - In `VirtualKeyboardDock.tsx`, hide the circular `⌨` button completely on mobile touch devices when native typing is active, preventing it from clipping or overlapping the footer.
   </action>
   <verify>
-    Execute `npx tsx test/run-all-tests.ts` and verify all tests pass with code 0.
+    Run `npm run build` to ensure zero compilation or styling errors.
   </verify>
   <done>
-    Automated verification suite tests all Phase 17 device and input requirements with zero regressions.
+    ModernDuelArena provides a focused, high-contrast, uncluttered combat interface built specifically for mobile screens.
   </done>
 </task>
 

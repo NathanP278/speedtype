@@ -56,7 +56,8 @@ The stack employs Vite + React + TypeScript + Tailwind CSS + HTML5 Canvas + Web 
 ### Phase 17: Multi-Device Calibration Profiles & Mobile Hardening
 - **Plan 17.1 (Wave 1)**: Multi-Device Calibration Storage, Anti-Mismatch Gate & Device Profile Mapping (per-device calibration map, hardware profile verification, mismatch alert banner).
 - **Plan 17.2 (Wave 2)**: Zero-Lag Controlled Buffer Input Pipeline & Rapid IME Synchronization (controlled value buffer diffing, WebKit QuickType IPC harmonization, touch focus lock).
-- **Plan 17.3 (Wave 3)**: Mobile Viewport Anti-Cutoff Geometry, Safe-Area Anchoring & Automated Verification (window scroll lock to 0,0, short-viewport auto-scaling, multi-device test suite).
+- **Plan 17.3 (Wave 2)**: Intentional Mobile UI Overhaul & Spatial Aesthetics (uncluttered mobile header, flowing typography ribbon, high-contrast hero word, sleek mobile combat bar, eliminate clipped dock button).
+- **Plan 17.4 (Wave 3)**: Mobile Viewport Anti-Cutoff Geometry & Automated Verification Suite (window scroll lock to 0,0, short-viewport auto-scaling, multi-device test suite).
 
 ---
 

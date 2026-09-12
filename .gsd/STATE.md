@@ -62,7 +62,8 @@
 - [ ] Phase 17: Multi-Device Calibration Profiles & Mobile Hardening
   - [ ] Plan 17.1: Multi-Device Calibration Storage, Anti-Mismatch Gate & Device Profile Mapping
   - [ ] Plan 17.2: Zero-Lag Controlled Buffer Input Pipeline & Rapid IME Synchronization
-  - [ ] Plan 17.3: Mobile Viewport Anti-Cutoff Geometry, Safe-Area Anchoring & Automated Verification
+  - [ ] Plan 17.3: Intentional Mobile UI Overhaul & Spatial Aesthetics
+  - [ ] Plan 17.4: Mobile Viewport Anti-Cutoff Geometry & Automated Verification Suite
 
 ## Verification Evidence
 - `npx tsx test/run-all-tests.ts`: Code 0 (193/193 assertions passed across Tiers 1-4 + Phase 15 + Phase 16)
