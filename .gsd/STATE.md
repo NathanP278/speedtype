@@ -39,7 +39,7 @@
   - [x] Plan 12.2: Rewrite AuthModal into 5-stage cyberpunk onboarding wizard with node timeline
   - [x] Plan 12.3: TerminalViewport pilot identity with call-sign & switch hardware display (Commit a0b9ee6)
 - [ ] Phase 13: Live Synchronization, Rigorous Combat Calculations & Hardened Authentication
-  - [ ] Plan 13.1: WPM Math Normalization & Rival AI Pacing Engine
+  - [x] Plan 13.1: WPM Math Normalization & Rival AI Pacing Engine (Commits 44b9011, c0f7b75)
   - [ ] Plan 13.2: Database Reset, Schema Verification & Auth Hardening
   - [ ] Plan 13.3: Live Realtime Synchronization Without Webpage Refresh
   - [ ] Plan 13.4: Marketplace Theme Auto-Equip & Connected UX Flows
