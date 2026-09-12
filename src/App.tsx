@@ -27,7 +27,11 @@ import {
 import {
   UserCalibration,
   getStoredCalibration,
+  checkDeviceCalibrationMismatch,
+  normalizeCalibrationCategory,
+  saveCalibration,
 } from './engine/calibration.ts';
+import { useDeviceProfile } from './engine/useDeviceProfile.ts';
 import { RivalDifficultyLevel } from './engine/adaptiveRival.ts';
 import { useSimpleDuel } from './engine/useSimpleDuel.ts';
 import { WeeklyTrial } from './trials/weeklyTrials.ts';
@@ -37,9 +41,22 @@ export function App() {
   // Authentication & Account Gate
   const auth = useAuth();
 
-  // Player Benchmark Calibration
-  const [calibration, setCalibration] = useState<UserCalibration | null>(() => getStoredCalibration());
-  const [isCalibrating, setIsCalibrating] = useState<boolean>(() => !getStoredCalibration());
+  // Hardware Device Profile & Category
+  const device = useDeviceProfile();
+  const currentCategory = normalizeCalibrationCategory(device.profile.category);
+
+  // Player Benchmark Calibration & Device Mismatch State
+  const [calibration, setCalibration] = useState<UserCalibration | null>(() =>
+    getStoredCalibration(normalizeCalibrationCategory(device.profile.category))
+  );
+  const [mismatchInfo, setMismatchInfo] = useState<{ previousDevice?: string; currentDevice?: string } | null>(() => {
+    const mismatch = checkDeviceCalibrationMismatch(currentCategory, device.profile.formFactor);
+    return mismatch.hasMismatch ? { previousDevice: mismatch.previousDevice, currentDevice: mismatch.currentDevice } : null;
+  });
+  const [isCalibrating, setIsCalibrating] = useState<boolean>(() => {
+    const mismatch = checkDeviceCalibrationMismatch(currentCategory, device.profile.formFactor);
+    return mismatch.requiresCalibration;
+  });
   const [difficulty, setDifficulty] = useState<RivalDifficultyLevel>('equal');
 
   // Display toggles
@@ -87,7 +104,14 @@ export function App() {
     if (!rateLimitCheck('calibration_complete')) {
       console.warn('[RateLimit] calibration_complete blocked');
     }
+    const cat = normalizeCalibrationCategory(device.profile.category);
+    saveCalibration(newCal, {
+      category: cat,
+      formFactor: device.profile.formFactor,
+      os: device.profile.os,
+    });
     setCalibration(newCal);
+    setMismatchInfo(null);
     setIsCalibrating(false);
     duel.resetDuel();
   };
@@ -174,14 +198,14 @@ export function App() {
       onSignOut={auth.signOut}
       onSelectPalette={(id) => economy.equipItem('palette', id)}
       onOpenMenu={() => setMenuOpen(true)}
-      onRetest={() => setIsCalibrating(true)}
+      onRetest={() => { setMismatchInfo(null); setIsCalibrating(true); }}
       crtEnabled={crtEnabled}
       scanlinesEnabled={scanlinesEnabled}
       calibrationBadge={
         calibration ? (
           <button
             type="button"
-            onClick={() => setIsCalibrating(true)}
+            onClick={() => { setMismatchInfo(null); setIsCalibrating(true); }}
             className="flex items-center gap-2 px-3.5 py-1.5 bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-700/80 rounded-full text-xs transition-all shadow-sm cursor-pointer active:scale-95"
             title="Click to recalibrate your typing benchmark"
           >
@@ -194,7 +218,7 @@ export function App() {
         ) : (
           <button
             type="button"
-            onClick={() => setIsCalibrating(true)}
+            onClick={() => { setMismatchInfo(null); setIsCalibrating(true); }}
             className="px-3.5 py-1.5 bg-amber-950/60 border border-amber-500/80 text-amber-300 rounded-full text-xs font-bold animate-pulse shadow-sm"
           >
             ⚡ Take Calibration Benchmark
@@ -206,8 +230,9 @@ export function App() {
       {isCalibrating ? (
         <TypingTest
           existingCalibration={calibration}
+          mismatchInfo={mismatchInfo}
           onComplete={handleCalibrationComplete}
-          onCancel={calibration ? () => setIsCalibrating(false) : undefined}
+          onCancel={calibration && !mismatchInfo ? () => setIsCalibrating(false) : undefined}
         />
       ) : (
         /* VIEW MODE 2: SIMPLIFIED 1v1 RIVAL DUEL */

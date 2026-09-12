@@ -5,6 +5,7 @@ import {
   calculateGrossWpm,
   calculateAccuracy,
   saveCalibration,
+  normalizeCalibrationCategory,
 } from '../engine/calibration.ts';
 import { soundEngine } from '../audio/soundEngine.ts';
 import { AdaptiveInputCapture, AdaptiveInputCaptureHandle } from './AdaptiveInputCapture.tsx';
@@ -14,6 +15,10 @@ interface TypingTestProps {
   onComplete: (calibration: UserCalibration) => void;
   onCancel?: () => void;
   existingCalibration?: UserCalibration | null;
+  mismatchInfo?: {
+    previousDevice?: string;
+    currentDevice?: string;
+  } | null;
 }
 
 const BENCHMARK_PASSAGES = [
@@ -29,6 +34,7 @@ export const TypingTest: React.FC<TypingTestProps> = ({
   onComplete,
   onCancel,
   existingCalibration,
+  mismatchInfo,
 }) => {
   const [passageIndex, setPassageIndex] = useState<number>(() =>
     Math.floor(Math.random() * BENCHMARK_PASSAGES.length)
@@ -119,7 +125,11 @@ export const TypingTest: React.FC<TypingTestProps> = ({
     };
 
     setFinalCalibration(result);
-    saveCalibration(result);
+    saveCalibration(result, {
+      category: normalizeCalibrationCategory(device.profile.category),
+      formFactor: device.profile.formFactor,
+      os: device.profile.os,
+    });
     soundEngine.playKeystroke(20, true);
   }, [isFinished, startTime, inputHistory, computeStats]);
 
@@ -195,6 +205,21 @@ export const TypingTest: React.FC<TypingTestProps> = ({
 
       {!isFinished ? (
         <>
+          {/* Device Mismatch Alert Banner */}
+          {mismatchInfo && (
+            <div className="mb-3 sm:mb-4 p-3 sm:p-3.5 bg-amber-950/40 border border-amber-500/60 rounded-xl flex items-start gap-2.5 text-xs text-amber-200 shadow-sm animate-pulse">
+              <span className="text-amber-400 font-bold text-sm leading-none mt-0.5">⚡</span>
+              <div className="flex-1">
+                <div className="font-bold text-amber-300 uppercase tracking-wider text-[11px] sm:text-xs">
+                  DEVICE MISMATCH DETECTED: {mismatchInfo.currentDevice || 'Current Device'}
+                </div>
+                <div className="text-[10px] sm:text-[11px] text-amber-200/90 mt-0.5 leading-relaxed">
+                  Last calibrated on <strong className="text-white">{mismatchInfo.previousDevice || 'another device'}</strong>. Calibrate on this hardware to ensure accurate Rival AI balance.
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Header */}
           <div
             className={`flex items-center justify-between border-b border-zinc-800 transition-all ${
