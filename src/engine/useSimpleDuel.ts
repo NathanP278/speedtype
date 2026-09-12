@@ -236,16 +236,10 @@ export function useSimpleDuel({
     };
   }, [enabled, isFinished, rivalStarted, rivalWordIndex, rivalTargetWpm, wordsList, endDuel]);
 
-  // Player keystroke listener
-  useEffect(() => {
-    if (!enabled || isFinished) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.ctrlKey || e.altKey || e.metaKey) return;
-      if (e.key === 'Tab' || e.key === 'Escape') return;
-      if (e.key.length !== 1) return;
-
-      e.preventDefault();
+  // Reusable character processing (callable by physical keydown, mobile IME, or on-screen dock)
+  const processCharInput = useCallback(
+    (char: string) => {
+      if (!enabled || isFinished) return;
 
       // First valid keypress: start both player timer AND rival
       if (!startTimeRef.current) {
@@ -255,7 +249,7 @@ export function useSimpleDuel({
       }
 
       const targetChar = currentWordText[typedIndex];
-      const isCorrect = e.key === targetChar;
+      const isCorrect = char === targetChar;
       const targetWordsCount = wordsList.length;
 
       setTotalKeystrokes((prev) => prev + 1);
@@ -295,24 +289,50 @@ export function useSimpleDuel({
       const delta = startTimeRef.current ? Date.now() - startTimeRef.current : 0;
       eventsRef.current.push({
         t: delta,
-        c: e.key,
+        c: char,
         ok: isCorrect,
         s: 'strike',
         w: wordCompleted ? currentWordText : undefined,
       });
+    },
+    [
+      enabled,
+      isFinished,
+      currentWordText,
+      typedIndex,
+      cleanStreak,
+      wordsList.length,
+      endDuel,
+    ]
+  );
+
+  const processBackspace = useCallback(() => {
+    if (!enabled || isFinished) return;
+    if (typedIndex > 0) {
+      setTypedIndex((prev) => Math.max(0, prev - 1));
+    }
+  }, [enabled, isFinished, typedIndex]);
+
+  // Player keystroke listener (captures physical keyboard events on window when input not focused)
+  useEffect(() => {
+    if (!enabled || isFinished) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // If focused inside an input or textarea, let AdaptiveInputCapture handle it
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+      if (e.ctrlKey || e.altKey || e.metaKey) return;
+      if (e.key === 'Tab' || e.key === 'Escape') return;
+      if (e.key.length !== 1) return;
+
+      e.preventDefault();
+      processCharInput(e.key);
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [
-    enabled,
-    isFinished,
-    currentWordText,
-    typedIndex,
-    cleanStreak,
-    wordsList,
-    endDuel,
-  ]);
+  }, [enabled, isFinished, processCharInput]);
 
   // Reset match — draw fresh rival WPM, reset rivalStarted gate
   const resetDuel = useCallback(() => {
@@ -413,5 +433,7 @@ export function useSimpleDuel({
     },
     resetDuel,
     startCustomMatch,
+    processCharInput,
+    processBackspace,
   };
 }

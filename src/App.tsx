@@ -221,6 +221,8 @@ export function App() {
           gameStarted={duel.gameStarted}
           onResetMatch={duel.resetDuel}
           onRetestSpeed={() => setIsCalibrating(true)}
+          onCharInput={duel.processCharInput}
+          onBackspace={duel.processBackspace}
         />
       )}
 
