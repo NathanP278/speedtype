@@ -226,62 +226,75 @@ export const TypingTest: React.FC<TypingTestProps> = ({
             )}
           </div>
 
-          {/* Live Metric Ribbon — Responsive Grid (2-col or 4-col) */}
-          <div
-            className={`grid gap-2 sm:gap-3 text-center transition-all ${
-              isKeyboardActive ? 'grid-cols-2 mb-3' : 'grid-cols-2 sm:grid-cols-4 mb-4 sm:mb-6'
-            }`}
-          >
-            <div className="p-2 sm:p-3.5 bg-black/60 border border-zinc-800 rounded-xl">
-              <span className="text-[9px] sm:text-[10px] text-zinc-500 block uppercase tracking-wider mb-0.5 sm:mb-1">
-                Timer
-              </span>
-              <span
-                className={`text-lg sm:text-2xl font-bold ${
-                  secondsRemaining <= 5 ? 'text-red-400 animate-pulse' : 'text-zinc-200'
-                }`}
-              >
-                {secondsRemaining}s
-              </span>
+          {/* Live Metric Ribbon — Responsive Layout */}
+          {isKeyboardActive ? (
+            <div className="flex items-center justify-between px-3 py-1.5 bg-black/70 border border-[var(--theme-border)] rounded-xl mb-2.5 text-xs font-mono">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-zinc-500 uppercase font-bold">TIMER:</span>
+                <span
+                  className={`font-bold text-sm ${
+                    secondsRemaining <= 5 ? 'text-red-400 animate-pulse' : 'text-zinc-200'
+                  }`}
+                >
+                  {secondsRemaining}s
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-zinc-400 uppercase font-bold">NET:</span>
+                <span className="font-bold text-sm text-[var(--theme-text)] glow-subtle">
+                  {startTime ? `${liveStats.netWpm} WPM` : '--'}
+                </span>
+              </div>
             </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 text-center mb-4 sm:mb-6 transition-all">
+              <div className="p-2 sm:p-3.5 bg-black/60 border border-zinc-800 rounded-xl">
+                <span className="text-[9px] sm:text-[10px] text-zinc-500 block uppercase tracking-wider mb-0.5 sm:mb-1">
+                  Timer
+                </span>
+                <span
+                  className={`text-lg sm:text-2xl font-bold ${
+                    secondsRemaining <= 5 ? 'text-red-400 animate-pulse' : 'text-zinc-200'
+                  }`}
+                >
+                  {secondsRemaining}s
+                </span>
+              </div>
 
-            <div className="p-2 sm:p-3.5 bg-black/60 border border-[var(--theme-border)] rounded-xl">
-              <span className="text-[9px] sm:text-[10px] text-zinc-400 block uppercase tracking-wider font-bold mb-0.5 sm:mb-1">
-                Net WPM
-              </span>
-              <span className="text-lg sm:text-2xl font-bold text-[var(--theme-text)] glow-subtle">
-                {startTime ? liveStats.netWpm : '--'}
-              </span>
+              <div className="p-2 sm:p-3.5 bg-black/60 border border-[var(--theme-border)] rounded-xl">
+                <span className="text-[9px] sm:text-[10px] text-zinc-400 block uppercase tracking-wider font-bold mb-0.5 sm:mb-1">
+                  Net WPM
+                </span>
+                <span className="text-lg sm:text-2xl font-bold text-[var(--theme-text)] glow-subtle">
+                  {startTime ? liveStats.netWpm : '--'}
+                </span>
+              </div>
+
+              <div className="p-2 sm:p-3.5 bg-black/60 border border-zinc-800 rounded-xl">
+                <span className="text-[9px] sm:text-[10px] text-zinc-500 block uppercase tracking-wider mb-0.5 sm:mb-1">
+                  Raw WPM
+                </span>
+                <span className="text-lg sm:text-2xl font-bold text-zinc-300">
+                  {startTime ? liveStats.grossWpm : '--'}
+                </span>
+              </div>
+
+              <div className="p-2 sm:p-3.5 bg-black/60 border border-zinc-800 rounded-xl">
+                <span className="text-[9px] sm:text-[10px] text-zinc-500 block uppercase tracking-wider mb-0.5 sm:mb-1">
+                  Accuracy
+                </span>
+                <span className="text-lg sm:text-2xl font-bold text-cyan-400">
+                  {startTime ? `${liveStats.accuracy}%` : '100%'}
+                </span>
+              </div>
             </div>
-
-            {!isKeyboardActive && (
-              <>
-                <div className="p-2 sm:p-3.5 bg-black/60 border border-zinc-800 rounded-xl">
-                  <span className="text-[9px] sm:text-[10px] text-zinc-500 block uppercase tracking-wider mb-0.5 sm:mb-1">
-                    Raw WPM
-                  </span>
-                  <span className="text-lg sm:text-2xl font-bold text-zinc-300">
-                    {startTime ? liveStats.grossWpm : '--'}
-                  </span>
-                </div>
-
-                <div className="p-2 sm:p-3.5 bg-black/60 border border-zinc-800 rounded-xl">
-                  <span className="text-[9px] sm:text-[10px] text-zinc-500 block uppercase tracking-wider mb-0.5 sm:mb-1">
-                    Accuracy
-                  </span>
-                  <span className="text-lg sm:text-2xl font-bold text-cyan-400">
-                    {startTime ? `${liveStats.accuracy}%` : '100%'}
-                  </span>
-                </div>
-              </>
-            )}
-          </div>
+          )}
 
           {/* Target Passage — Fluid responsive text size */}
           <div
             className={`relative bg-black border border-zinc-800 rounded-xl leading-relaxed sm:leading-loose font-mono tracking-wide cursor-text transition-all ${
               isKeyboardActive
-                ? 'p-3 sm:p-4 text-sm sm:text-base mb-3 max-h-[120px] overflow-y-auto'
+                ? 'p-3 sm:p-4 text-sm sm:text-base mb-2 max-h-[140px] overflow-y-auto'
                 : 'p-4 sm:p-8 text-base sm:text-xl md:text-2xl mb-4 sm:mb-6 min-h-[140px]'
             }`}
           >
@@ -317,20 +330,22 @@ export const TypingTest: React.FC<TypingTestProps> = ({
           </div>
 
           {/* Help row */}
-          <div className="flex justify-between items-center text-[10px] sm:text-xs text-zinc-500 px-1">
-            <span>
-              {!startTime
-                ? 'Tap box to type • Backspace corrects typos'
-                : 'Uncorrected errors reduce Net WPM.'}
-            </span>
-            <button
-              type="button"
-              onClick={resetTest}
-              className="text-zinc-400 hover:text-zinc-200 underline text-[10px] sm:text-[11px]"
-            >
-              Reset Text
-            </button>
-          </div>
+          {!isKeyboardActive && (
+            <div className="flex justify-between items-center text-[10px] sm:text-xs text-zinc-500 px-1">
+              <span>
+                {!startTime
+                  ? 'Tap box to type • Backspace corrects typos'
+                  : 'Uncorrected errors reduce Net WPM.'}
+              </span>
+              <button
+                type="button"
+                onClick={resetTest}
+                className="text-zinc-400 hover:text-zinc-200 underline text-[10px] sm:text-[11px] cursor-pointer"
+              >
+                Reset Text
+              </button>
+            </div>
+          )}
         </>
       ) : (
         /* Benchmark Completion Screen */

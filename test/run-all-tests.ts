@@ -28,6 +28,9 @@ import { registerTier4ScenarioTests } from './e2e/tier4-scenarios/tier4-real-wor
 // Phase 15: Device Detection & Anti-Spoofing Tests
 import { registerDeviceDetectionTests } from './deviceDetection.test.ts';
 
+// Phase 16: Mobile Input Engine & Virtual Keyboard Pipeline Tests
+import { registerMobileInputEngineTests } from './mobileInputEngine.test.ts';
+
 async function main(): Promise<void> {
   console.log('================================================================');
   console.log('⚡ SPEEDTYPE COMPREHENSIVE AUTOMATED TEST SUITE (TIERS 1 - 4) ⚡');
@@ -54,6 +57,9 @@ async function main(): Promise<void> {
 
   // Phase 15: Device Detection Tests
   registerDeviceDetectionTests();
+
+  // Phase 16: Mobile Input Engine Tests
+  registerMobileInputEngineTests();
 
   console.log('Executing test harness...\n');
   const summary = await runAllRegisteredSuites(true);
