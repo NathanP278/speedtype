@@ -6,8 +6,8 @@ import './index.css';
 
 const isOAuthPopup =
   typeof window !== 'undefined' &&
-  Boolean(window.opener) &&
-  window.name === 'speedtype_google_oauth';
+  (window.name === 'speedtype_google_oauth' ||
+    (Boolean(window.opener) && window.name === 'speedtype_google_oauth'));
 
 if (isOAuthPopup) {
   const root = ReactDOM.createRoot(document.getElementById('root')!);
@@ -28,30 +28,84 @@ if (isOAuthPopup) {
       const params = new URLSearchParams(window.location.search);
       const code = params.get('code');
 
+      let session = null;
       if (code) {
         // Exchange PKCE authorization code for session tokens
-        const { error } = await supabase.auth.exchangeCodeForSession(code);
+        const { data, error } = await supabase.auth.exchangeCodeForSession(code);
         if (error) {
-          console.error('[OAuthPopup] Code exchange failed:', error);
-          root.render(
-            <div className="h-screen w-screen flex flex-col items-center justify-center bg-black text-red-400 font-mono p-6 text-center select-none">
-              <span className="text-3xl mb-2">⚠️</span>
-              <p className="font-bold text-sm">AUTHENTICATION FAILED</p>
-              <p className="text-xs text-zinc-400 mt-2">{error.message}</p>
-            </div>
-          );
-          return;
+          console.warn('[OAuthPopup] Code exchange note:', error.message);
+          const { data: sData } = await supabase.auth.getSession();
+          session = sData?.session || null;
+        } else {
+          session = data?.session || null;
         }
-      } else {
-        // Fallback for hash fragments or pre-parsed session
-        await supabase.auth.getSession();
       }
 
-      // Notify parent window that session is successfully written to storage
+      if (!session) {
+        const { data: sData } = await supabase.auth.getSession();
+        session = sData?.session || null;
+      }
+
+      if (!session) {
+        // Retry briefly in case GoTrueClient internal detectSessionInUrl is finishing
+        await new Promise((resolve) => setTimeout(resolve, 600));
+        const { data: retryData } = await supabase.auth.getSession();
+        session = retryData?.session || null;
+      }
+
+      if (!session) {
+        root.render(
+          <div className="h-screen w-screen flex flex-col items-center justify-center bg-black text-red-400 font-mono p-6 text-center select-none">
+            <span className="text-3xl mb-2">⚠️</span>
+            <p className="font-bold text-sm">AUTHENTICATION INCOMPLETE</p>
+            <p className="text-xs text-zinc-400 mt-2">
+              Could not retrieve session tokens. Please close this window and retry.
+            </p>
+          </div>
+        );
+        return;
+      }
+
+      const authPayload = {
+        type: 'SPEEDTYPE_OAUTH_SUCCESS',
+        session: {
+          access_token: session.access_token,
+          refresh_token: session.refresh_token,
+        },
+      };
+
+      // 1. BroadcastChannel (cross-window reliable)
       try {
-        window.opener?.postMessage({ type: 'SPEEDTYPE_OAUTH_SUCCESS' }, window.location.origin);
+        if (typeof BroadcastChannel !== 'undefined') {
+          const bc = new BroadcastChannel('speedtype_auth_channel');
+          bc.postMessage(authPayload);
+          bc.close();
+        }
       } catch (e) {
-        console.warn('[OAuthPopup] Failed to postMessage to opener:', e);
+        console.warn('[OAuthPopup] BroadcastChannel dispatch failed:', e);
+      }
+
+      // 2. window.opener postMessage
+      try {
+        if (window.opener) {
+          window.opener.postMessage(authPayload, '*');
+        }
+      } catch (e) {
+        console.warn('[OAuthPopup] postMessage to opener failed:', e);
+      }
+
+      // 3. localStorage session bridge (survives tab disconnects)
+      try {
+        localStorage.setItem(
+          'speedtype_oauth_session_bridge',
+          JSON.stringify({
+            access_token: session.access_token,
+            refresh_token: session.refresh_token,
+            timestamp: Date.now(),
+          })
+        );
+      } catch (e) {
+        console.warn('[OAuthPopup] localStorage bridge write failed:', e);
       }
 
       root.render(
@@ -66,7 +120,6 @@ if (isOAuthPopup) {
         </div>
       );
 
-      // Close popup smoothly
       setTimeout(() => {
         try {
           window.close();

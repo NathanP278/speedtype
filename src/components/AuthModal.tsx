@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { AVATAR_OPTIONS, validateUsername } from '../profile/profile.ts';
 import { UserAccount, UserTelemetry } from '../auth/authTypes.ts';
 
@@ -23,6 +23,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   onUpdateProfile,
   isLoading,
   serverError,
+  isCloudEnabled,
 }) => {
   const [username, setUsername] = useState<string>(() => currentUser?.username || '');
   const [avatar, setAvatar] = useState<string>(() => currentUser?.avatar || '⚡');
@@ -32,9 +33,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   const activeError = localError || serverError;
 
-  React.useEffect(() => {
+  // Keep username & avatar populated when user state hydrates
+  useEffect(() => {
     if (currentUser) {
-      handleInputRef.current?.focus();
+      setUsername((prev) => prev || currentUser.username || '');
+      setAvatar((prev) => (prev === '⚡' || !prev ? currentUser.avatar || '⚡' : prev));
+      setTimeout(() => {
+        handleInputRef.current?.focus();
+      }, 50);
     }
   }, [currentUser]);
 
@@ -86,11 +92,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <div className="text-6xl mb-6 animate-pulse drop-shadow-[0_0_15px_rgba(255,255,255,0.8)]">
               ⚡
             </div>
-            
+
             <h1 className="text-6xl sm:text-7xl font-black tracking-widest text-white drop-shadow-[0_0_20px_rgba(255,255,255,0.2)] mb-2">
               SPEEDTYPE
             </h1>
-            
+
             <p className="text-sm text-zinc-400 mt-2 mb-10 tracking-widest uppercase">
               Zero-latency cyber combat typing engine.
             </p>
@@ -104,7 +110,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   setLocalError(res.error);
                 }
               }}
-              disabled={isLoading}
+              disabled={isLoading || !isCloudEnabled}
               className="w-full max-w-sm py-4 px-6 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 hover:border-[var(--theme-text)] text-white font-bold text-sm rounded-xl transition-all flex items-center justify-center gap-4 shadow-lg hover:shadow-[0_0_20px_rgba(255,255,255,0.15)] cursor-pointer focus-ring disabled:opacity-50"
             >
               <svg className="w-6 h-6 flex-shrink-0" viewBox="0 0 24 24">
@@ -128,6 +134,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               <span>{isLoading ? 'ESTABLISHING HANDSHAKE...' : 'CONTINUE WITH GOOGLE'}</span>
             </button>
 
+            {!isCloudEnabled && (
+              <p className="text-xs text-amber-500 mt-4">
+                ⚠️ Cloud integration not configured. Check VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.
+              </p>
+            )}
+
             <div className="mt-8 flex items-center gap-3 text-[9px] sm:text-[10px] text-zinc-600 font-bold tracking-widest uppercase">
               <span>TLS 1.3</span>
               <span>•</span>
@@ -137,7 +149,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             </div>
           </div>
         ) : (
-          /* STATE B: Authenticated but missing username (Onboarding) */
+          /* STATE B: Authenticated but missing username/avatar (Onboarding) */
           <div className="flex flex-col w-full text-left py-4">
             <h2 className="text-xl font-black text-white tracking-widest mb-4 border-b border-zinc-800 pb-4 text-center">
               CHOOSE YOUR PILOT HANDLE

@@ -1,14 +1,19 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase.ts';
 import { UserAccount, UserTelemetry } from './authTypes.ts';
 import { purgeLocalDataAndCookies } from '../utils/storagePurge.ts';
+import { AVATAR_OPTIONS } from '../profile/profile.ts';
+
+const OAUTH_CHANNEL_NAME = 'speedtype_auth_channel';
+const OAUTH_STORAGE_KEY = 'speedtype_oauth_session_bridge';
 
 export function useAuth() {
   const [user, setUser] = useState<UserAccount | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const isMountedRef = useRef<boolean>(true);
 
-  // Sync profile details from public.profiles table
+  // Sync profile details from public.profiles table or auth metadata
   const fetchAndSetProfile = useCallback(async (userId: string, authUser: any) => {
     try {
       if (!isSupabaseConfigured || !supabase) {
@@ -22,18 +27,26 @@ export function useAuth() {
         .eq('id', userId)
         .single();
 
+      const meta = authUser?.user_metadata || {};
+      const rawCandidate =
+        meta.username ||
+        meta.full_name ||
+        authUser?.email?.split('@')[0] ||
+        `pilot_${userId.slice(0, 6)}`;
+      const sanitized = rawCandidate.replace(/[^a-zA-Z0-9_]/g, '_').toLowerCase().slice(0, 20);
+      const fallbackUsername = sanitized.length >= 3 ? sanitized : `pilot_${userId.slice(0, 6)}`;
+      const fallbackAvatar = AVATAR_OPTIONS.includes(meta.avatar) ? meta.avatar : '⚡';
+
       if (profileErr || !data) {
-        // Fallback to auth metadata or pending onboarding state
-        const meta = authUser?.user_metadata || {};
         const fallbackAcc: UserAccount = {
           id: userId,
           email: authUser?.email || '',
-          username: meta.username || authUser?.email?.split('@')[0] || `pilot_${userId.slice(0, 6)}`,
-          avatar: meta.avatar_url || '⚡',
-          displayName: meta.displayName,
+          username: fallbackUsername,
+          avatar: fallbackAvatar,
+          displayName: meta.full_name || meta.displayName || undefined,
           callSign: 'PILOT',
           telemetry: undefined,
-          onboardingComplete: false,
+          onboardingComplete: Boolean(meta.onboarding_complete),
           provider: 'google',
           createdAt: Date.now(),
         };
@@ -44,67 +57,158 @@ export function useAuth() {
       const acc: UserAccount = {
         id: data.id,
         email: authUser?.email || '',
-        username: data.username,
-        avatar: data.avatar || '⚡',
+        username: data.username || fallbackUsername,
+        avatar: data.avatar || fallbackAvatar,
         displayName: data.display_name || undefined,
         callSign: data.call_sign || 'PILOT',
         telemetry: data.telemetry || undefined,
-        onboardingComplete: Boolean(data.onboarding_complete),
+        onboardingComplete: Boolean(data.onboarding_complete || meta.onboarding_complete),
         provider: 'google',
         createdAt: new Date(data.created_at).getTime(),
       };
       setUser(acc);
       return acc;
     } catch (err) {
-      console.error('Error fetching user profile:', err);
+      console.error('[useAuth] Error fetching user profile:', err);
       return null;
     }
   }, []);
 
-  // Initialize session & auth listener
+  // Helper to safely apply session tokens into client
+  const applySessionTokens = useCallback(
+    async (tokens: { access_token: string; refresh_token: string }) => {
+      if (!isMountedRef.current || !isSupabaseConfigured || !supabase) return;
+      setIsLoading(true);
+      try {
+        const { data, error: setErr } = await supabase.auth.setSession({
+          access_token: tokens.access_token,
+          refresh_token: tokens.refresh_token,
+        });
+
+        if (!setErr && data?.session?.user) {
+          await fetchAndSetProfile(data.session.user.id, data.session.user);
+        } else {
+          // Fallback to getSession
+          const { data: sData } = await supabase.auth.getSession();
+          if (sData?.session?.user) {
+            await fetchAndSetProfile(sData.session.user.id, sData.session.user);
+          }
+        }
+      } catch (err) {
+        console.error('[useAuth] Failed to apply session tokens:', err);
+      } finally {
+        if (isMountedRef.current) setIsLoading(false);
+      }
+    },
+    [fetchAndSetProfile]
+  );
+
+  // Initialize session & cross-window auth synchronization listeners
   useEffect(() => {
+    isMountedRef.current = true;
+
     if (!isSupabaseConfigured || !supabase) {
       setUser(null);
       setIsLoading(false);
       return;
     }
 
-    let isMounted = true;
-
-    // Check active session on mount
+    // 1. Initial session check on mount
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!isMounted) return;
+      if (!isMountedRef.current) return;
       if (session?.user) {
         fetchAndSetProfile(session.user.id, session.user).finally(() => {
-          if (isMounted) setIsLoading(false);
+          if (isMountedRef.current) setIsLoading(false);
         });
       } else {
+        // If code or token is in URL (redirect flow), let detectSessionInUrl / onAuthStateChange process it
+        if (window.location.search.includes('code=') || window.location.hash.includes('access_token=')) {
+          return;
+        }
+        // Check for pending storage bridge
+        const bridgeStr = localStorage.getItem(OAUTH_STORAGE_KEY);
+        if (bridgeStr) {
+          try {
+            const bridge = JSON.parse(bridgeStr);
+            localStorage.removeItem(OAUTH_STORAGE_KEY);
+            if (bridge?.access_token && bridge?.refresh_token && Date.now() - (bridge.timestamp || 0) < 60000) {
+              applySessionTokens(bridge);
+              return;
+            }
+          } catch {}
+        }
         setUser(null);
         setIsLoading(false);
       }
     });
 
-    // Listen for cross-window message from OAuth popup
-    const handlePopupMessage = async (event: MessageEvent) => {
+    // 2. BroadcastChannel listener (primary for same-origin tabs/windows)
+    let authChannel: BroadcastChannel | null = null;
+    if (typeof BroadcastChannel !== 'undefined') {
+      try {
+        authChannel = new BroadcastChannel(OAUTH_CHANNEL_NAME);
+        authChannel.onmessage = async (event: MessageEvent) => {
+          if (event.data?.type === 'SPEEDTYPE_OAUTH_SUCCESS') {
+            if (event.data?.session?.access_token) {
+              await applySessionTokens(event.data.session);
+            } else {
+              const { data: { session } } = await supabase.auth.getSession();
+              if (session?.user) {
+                await fetchAndSetProfile(session.user.id, session.user);
+              }
+            }
+          }
+        };
+      } catch (e) {
+        console.warn('[useAuth] BroadcastChannel init error:', e);
+      }
+    }
+
+    // 3. postMessage listener (fallback for window.opener)
+    const handleWindowMessage = async (event: MessageEvent) => {
       if (event.origin !== window.location.origin) return;
       if (event.data?.type === 'SPEEDTYPE_OAUTH_SUCCESS') {
-        if (!isMounted) return;
-        setIsLoading(true);
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-          await fetchAndSetProfile(session.user.id, session.user);
+        if (!isMountedRef.current) return;
+        if (event.data?.session?.access_token) {
+          await applySessionTokens(event.data.session);
+        } else {
+          setIsLoading(true);
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.user) {
+            await fetchAndSetProfile(session.user.id, session.user);
+          }
+          setIsLoading(false);
         }
-        setIsLoading(false);
       }
     };
-    window.addEventListener('message', handlePopupMessage);
+    window.addEventListener('message', handleWindowMessage);
 
-    // Listen for auth state transitions (login, logout, oauth callback)
+    // 4. storage event listener (cross-tab fallback)
+    const handleStorageChange = async (event: StorageEvent) => {
+      if (event.key === OAUTH_STORAGE_KEY && event.newValue) {
+        try {
+          const parsed = JSON.parse(event.newValue);
+          localStorage.removeItem(OAUTH_STORAGE_KEY);
+          if (parsed?.access_token && parsed?.refresh_token) {
+            await applySessionTokens(parsed);
+          }
+        } catch (e) {
+          console.warn('[useAuth] Storage change parse error:', e);
+        }
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+
+    // 5. Supabase Auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (!isMounted) return;
-      if (event === 'SIGNED_IN' && session?.user) {
+      if (!isMountedRef.current) return;
+      if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') && session?.user) {
         setIsLoading(true);
         await fetchAndSetProfile(session.user.id, session.user);
+        if (window.history?.replaceState && window.location.search.includes('code=')) {
+          const cleanUrl = window.location.origin + window.location.pathname;
+          window.history.replaceState(null, '', cleanUrl);
+        }
         setIsLoading(false);
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
@@ -113,11 +217,13 @@ export function useAuth() {
     });
 
     return () => {
-      isMounted = false;
-      window.removeEventListener('message', handlePopupMessage);
+      isMountedRef.current = false;
+      window.removeEventListener('message', handleWindowMessage);
+      window.removeEventListener('storage', handleStorageChange);
+      authChannel?.close();
       subscription.unsubscribe();
     };
-  }, [fetchAndSetProfile]);
+  }, [fetchAndSetProfile, applySessionTokens]);
 
   // Exclusive Google OAuth Sign-In with Dedicated Popup & Account Selection
   const signInWithGoogle = useCallback(async (): Promise<{ success: boolean; error?: string }> => {
@@ -178,6 +284,19 @@ export function useAuth() {
       const timer = setInterval(async () => {
         if (!popup || popup.closed) {
           clearInterval(timer);
+          // Check storage bridge first
+          const bridgeStr = localStorage.getItem(OAUTH_STORAGE_KEY);
+          if (bridgeStr) {
+            try {
+              const bridge = JSON.parse(bridgeStr);
+              localStorage.removeItem(OAUTH_STORAGE_KEY);
+              if (bridge?.access_token && bridge?.refresh_token) {
+                await applySessionTokens(bridge);
+                return;
+              }
+            } catch {}
+          }
+          // Fallback getSession
           const { data: { session } } = await supabase.auth.getSession();
           if (session?.user) {
             await fetchAndSetProfile(session.user.id, session.user);
@@ -191,7 +310,7 @@ export function useAuth() {
       setError(msg);
       return { success: false, error: msg };
     }
-  }, [fetchAndSetProfile]);
+  }, [fetchAndSetProfile, applySessionTokens]);
 
   // Update profile from onboarding wizard or profile settings
   const updateProfile = useCallback(async (updates: {
@@ -215,6 +334,18 @@ export function useAuth() {
 
     if (isSupabaseConfigured && supabase) {
       try {
+        // 1. Update Supabase Auth user_metadata directly (cloud-level, bypasses table dependencies)
+        await supabase.auth.updateUser({
+          data: {
+            username: updatedUser.username,
+            avatar: updatedUser.avatar,
+            display_name: updatedUser.displayName || null,
+            call_sign: updatedUser.callSign,
+            onboarding_complete: true,
+          },
+        });
+
+        // 2. Upsert public.profiles record
         const { error: upsertErr } = await supabase
           .from('profiles')
           .upsert({
@@ -256,10 +387,11 @@ export function useAuth() {
       try {
         await supabase.auth.signOut();
       } catch (err) {
-        console.error('Error during signOut:', err);
+        console.error('[useAuth] Error during signOut:', err);
       }
     }
 
+    localStorage.removeItem(OAUTH_STORAGE_KEY);
     purgeLocalDataAndCookies();
     setIsLoading(false);
     window.location.reload();
