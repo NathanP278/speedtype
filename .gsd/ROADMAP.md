@@ -48,6 +48,11 @@ The stack employs Vite + React + TypeScript + Tailwind CSS + HTML5 Canvas + Web 
 - **Plan 15.3 (Wave 3)**: VisualViewport Dynamics, Safe Areas & Fluid Responsive Arena Layout (visualViewport height sync, responsive hero word scaling, safe-area insets).
 - **Plan 15.4 (Wave 4)**: Cross-Device Modal Adaptations & Automated Verification Suite (mobile modal touch ergonomics, device detection unit tests, zero regression validation).
 
+### Phase 16: Zero-Latency Mobile Input Engine & Fluid Spatial UI Architecture
+- **Plan 16.1 (Wave 1)**: Zero-Latency Mobile Input Engine & Virtual Keyboard Pipeline (cancelable beforeinput, microtask tick deduplication, remove 30ms throttle, eradicate cursor flicker).
+- **Plan 16.2 (Wave 2)**: Spatial Elegance & Uncluttered Fluid Mobile Layout (eradicate duplicate active word bar, minimalist top race beam, fluid hero word breathing room).
+- **Plan 16.3 (Wave 3)**: Calibration Polish & Automated Input Validation Suite (TypingTest mobile spacing, rapid-fire double-letter test suite, full test runner integration).
+
 ---
 
 ## Phase Dependencies
@@ -61,6 +66,7 @@ flowchart TD
     P5 --> P13["Phase 13: Live Sync, Combat Math & Auth Hardening"]
     P13 --> P14["Phase 14: Google Auth Exclusive & Offline Mode Elimination"]
     P14 --> P15["Phase 15: Universal Device Adaptation & Cross-Platform Engine"]
+    P15 --> P16["Phase 16: Zero-Latency Mobile Input Engine & Fluid Spatial UI Architecture"]
 ```
 
 
