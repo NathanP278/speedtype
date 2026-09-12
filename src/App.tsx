@@ -269,6 +269,7 @@ export function App() {
         equipped={economy.equipped}
         onBuy={economy.buyItem}
         onEquip={economy.equipItem}
+        onBuyAndEquip={economy.buyAndEquipItem}
       />
 
       <RivalryDossierModal
