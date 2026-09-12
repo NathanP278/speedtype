@@ -3,34 +3,8 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase.ts';
 import { UserAccount, UserTelemetry } from './authTypes.ts';
 import { purgeLocalDataAndCookies } from '../utils/storagePurge.ts';
 
-const LOCAL_FALLBACK_USER_KEY = 'speedtype_auth_local_user';
-
-function getLocalFallbackUser(): UserAccount | null {
-  try {
-    const raw = localStorage.getItem(LOCAL_FALLBACK_USER_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw) as UserAccount;
-  } catch {
-    return null;
-  }
-}
-
-function setLocalFallbackUser(user: UserAccount | null): void {
-  try {
-    if (user) {
-      localStorage.setItem(LOCAL_FALLBACK_USER_KEY, JSON.stringify(user));
-    } else {
-      localStorage.removeItem(LOCAL_FALLBACK_USER_KEY);
-    }
-  } catch (err) {
-    console.error('Failed to update local user storage', err);
-  }
-}
-
 export function useAuth() {
-  const [user, setUser] = useState<UserAccount | null>(() => {
-    return getLocalFallbackUser();
-  });
+  const [user, setUser] = useState<UserAccount | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -38,11 +12,7 @@ export function useAuth() {
   const fetchAndSetProfile = useCallback(async (userId: string, authUser: any) => {
     try {
       if (!isSupabaseConfigured || !supabase) {
-        const local = getLocalFallbackUser();
-        if (local) {
-          setUser(local);
-          return local;
-        }
+        setUser(null);
         return null;
       }
 
@@ -59,16 +29,15 @@ export function useAuth() {
           id: userId,
           email: authUser?.email || '',
           username: meta.username || authUser?.email?.split('@')[0] || `pilot_${userId.slice(0, 6)}`,
-          avatar: meta.avatar || '⚡',
+          avatar: meta.avatar_url || '⚡',
           displayName: meta.displayName,
-          callSign: meta.callSign || 'PILOT',
-          telemetry: meta.telemetry,
-          onboardingComplete: Boolean(meta.onboardingComplete),
+          callSign: 'PILOT',
+          telemetry: undefined,
+          onboardingComplete: false,
           provider: 'google',
           createdAt: Date.now(),
         };
         setUser(fallbackAcc);
-        setLocalFallbackUser(fallbackAcc);
         return fallbackAcc;
       }
 
@@ -81,11 +50,10 @@ export function useAuth() {
         callSign: data.call_sign || 'PILOT',
         telemetry: data.telemetry || undefined,
         onboardingComplete: Boolean(data.onboarding_complete),
-        provider: (data.provider as 'google' | 'email') || 'google',
+        provider: 'google',
         createdAt: new Date(data.created_at).getTime(),
       };
       setUser(acc);
-      setLocalFallbackUser(acc);
       return acc;
     } catch (err) {
       console.error('Error fetching user profile:', err);
@@ -96,7 +64,7 @@ export function useAuth() {
   // Initialize session & auth listener
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase) {
-      setUser(getLocalFallbackUser());
+      setUser(null);
       setIsLoading(false);
       return;
     }
@@ -111,8 +79,7 @@ export function useAuth() {
           if (isMounted) setIsLoading(false);
         });
       } else {
-        const local = getLocalFallbackUser();
-        setUser(local);
+        setUser(null);
         setIsLoading(false);
       }
     });
@@ -125,7 +92,6 @@ export function useAuth() {
         await fetchAndSetProfile(session.user.id, session.user);
         setIsLoading(false);
       } else if (event === 'SIGNED_OUT') {
-        setLocalFallbackUser(null);
         setUser(null);
         setIsLoading(false);
       }
@@ -142,20 +108,9 @@ export function useAuth() {
     setError(null);
 
     if (!isSupabaseConfigured || !supabase) {
-      // Offline demo mode Google sign in
-      const googleDemo: UserAccount = {
-        id: `google_demo_${Date.now()}`,
-        email: 'pilot.google@speedtype.com',
-        username: `pilot_${Math.floor(1000 + Math.random() * 9000)}`,
-        avatar: '⚡',
-        callSign: 'VIPER',
-        onboardingComplete: false,
-        provider: 'google',
-        createdAt: Date.now(),
-      };
-      setLocalFallbackUser(googleDemo);
-      setUser(googleDemo);
-      return { success: true };
+      const msg = 'Cloud integration not configured. Google Sign-In unavailable.';
+      setError(msg);
+      return { success: false, error: msg };
     }
 
     try {
@@ -163,10 +118,6 @@ export function useAuth() {
         provider: 'google',
         options: {
           redirectTo: window.location.origin,
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'select_account',
-          },
         },
       });
 
@@ -204,10 +155,9 @@ export function useAuth() {
     };
 
     // Update local immediately
-    setLocalFallbackUser(updatedUser);
     setUser(updatedUser);
 
-    if (isSupabaseConfigured && supabase && !user.id.startsWith('google_demo_')) {
+    if (isSupabaseConfigured && supabase) {
       try {
         const { error: upsertErr } = await supabase
           .from('profiles')
@@ -225,7 +175,6 @@ export function useAuth() {
 
         if (upsertErr) {
           console.warn('[useAuth] Supabase profile sync warning:', upsertErr.message);
-          // Still return true because local state was updated smoothly
         }
       } catch (err) {
         console.error('[useAuth] Failed to push profile update to cloud:', err);
@@ -238,7 +187,6 @@ export function useAuth() {
   // Sign out & complete storage purge
   const signOut = useCallback(async (): Promise<void> => {
     setIsLoading(true);
-    setLocalFallbackUser(null);
     setUser(null);
 
     if (isSupabaseConfigured && supabase) {
