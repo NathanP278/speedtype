@@ -88,6 +88,7 @@ export const ModernDuelArena: React.FC<ModernDuelArenaProps> = ({
           ref={inputCaptureRef}
           onCharInput={handleCharacterTyped}
           onBackspace={handleBackspaceTyped}
+          currentTypedValue={currentWordText.slice(0, typedIndex)}
           autoFocus={true}
         />
       )}

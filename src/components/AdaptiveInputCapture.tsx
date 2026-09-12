@@ -8,25 +8,26 @@ export interface AdaptiveInputCaptureHandle {
 interface AdaptiveInputCaptureProps {
   onCharInput: (char: string) => void;
   onBackspace?: () => void;
+  currentTypedValue?: string;
   disabled?: boolean;
   autoFocus?: boolean;
 }
 
 /**
- * High-performance, zero-latency mobile & cross-device input capture component.
+ * High-performance controlled buffer input capture component.
  *
  * Engineered for iOS QuickType, Android Gboard, iPadOS, and physical keyboards:
- * - Anchored at the viewport base to strictly prevent iOS Safari auto-zoom and scroll-jumping.
- * - Employs cancelable `beforeinput` as primary intake for mobile IME and virtual keyboards,
- *   preventing DOM mutation and eliminating WebKit cursor reset & dictionary IPC stutter.
- * - Replaces arbitrary millisecond throttling with microtask-scoped tick deduplication
- *   so rapid-fire typing bursts (<15ms) and consecutive double letters ('ee', 'll')
- *   register with 100% fidelity without dropping characters.
+ * - Synchronizes the DOM input value with the active typing buffer (`currentTypedValue`).
+ * - Employs rapid value diffing on native input/change events instead of canceling beforeinput,
+ *   completely eliminating WebKit QuickType / Gboard predictive daemon desynchronization,
+ *   IPC sync timeouts, and keyboard session disconnects.
+ * - Provides immediate physical backspace support when buffer is empty for inter-word transitions.
+ * - 44x44px touch-accessible anchoring prevents mobile browsers from dismissing the virtual keyboard.
  */
 export const AdaptiveInputCapture = forwardRef<AdaptiveInputCaptureHandle, AdaptiveInputCaptureProps>(
-  ({ onCharInput, onBackspace, disabled = false, autoFocus = true }, ref) => {
+  ({ onCharInput, onBackspace, currentTypedValue = '', disabled = false, autoFocus = true }, ref) => {
     const inputRef = useRef<HTMLInputElement>(null);
-    const beforeInputHandledInTickRef = useRef<boolean>(false);
+    const prevValueRef = useRef<string>(currentTypedValue);
     const backspaceHandledInTickRef = useRef<boolean>(false);
 
     useImperativeHandle(ref, () => ({
@@ -46,87 +47,83 @@ export const AdaptiveInputCapture = forwardRef<AdaptiveInputCaptureHandle, Adapt
       }
     }, [autoFocus, disabled]);
 
-    // Handle physical keyboard special keys (Backspace, Tab, Escape)
+    // Synchronize DOM value with incoming controlled progress from engine
+    useEffect(() => {
+      if (inputRef.current && inputRef.current.value !== currentTypedValue) {
+        inputRef.current.value = currentTypedValue;
+      }
+      prevValueRef.current = currentTypedValue;
+    }, [currentTypedValue]);
+
+    // Handle physical keyboard special keys
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
       if (disabled) return;
       if (e.ctrlKey || e.altKey || e.metaKey) return;
       if (e.key === 'Tab' || e.key === 'Escape') return;
 
       if (e.key === 'Backspace') {
-        e.preventDefault();
-        backspaceHandledInTickRef.current = true;
-        queueMicrotask(() => {
-          backspaceHandledInTickRef.current = false;
-        });
-        onBackspace?.();
-        return;
+        // If current value is empty, fire onBackspace immediately so user can delete into prior word
+        if (!inputRef.current || inputRef.current.value.length === 0) {
+          e.preventDefault();
+          backspaceHandledInTickRef.current = true;
+          queueMicrotask(() => {
+            backspaceHandledInTickRef.current = false;
+          });
+          onBackspace?.();
+        }
+        // If value is not empty, let native deletion occur and handle via handleValueChange diffing
       }
-
-      // If key is printable and not unidentified, let beforeinput handle cancelable intake
-      // on mobile and modern desktop. If in a headless or legacy environment without beforeinput,
-      // handleChange will capture any value change.
     };
 
-    // Handle primary character intake via cancelable beforeinput
-    // Intercepts virtual keyboard taps, suggestions, autocorrect, and IME composition
-    const handleBeforeInput = (
-      e: React.FormEvent<HTMLInputElement> & {
-        data?: string | null;
-        inputType?: string;
-      }
-    ) => {
+    // Value diffing engine: triggers on every native character insertion or backspace
+    const handleValueChange = (newValue: string) => {
       if (disabled) return;
+      const prevValue = prevValueRef.current;
 
-      // Handle Backspace / Delete from virtual keyboard
-      if (e.inputType === 'deleteContentBackward' || e.inputType === 'deleteWordBackward') {
-        e.preventDefault();
-        // If already handled by physical keydown in this event loop tick, avoid duplicate
-        if (backspaceHandledInTickRef.current) return;
+      if (newValue === prevValue) return;
 
+      if (newValue.length > prevValue.length) {
+        // Characters added (single key tap, rapid burst, swipe, or suggestion replacement)
+        if (newValue.startsWith(prevValue)) {
+          const addedChars = newValue.slice(prevValue.length);
+          for (const ch of addedChars) {
+            onCharInput(ch);
+          }
+        } else {
+          // Replacement or non-prefix edit: feed characters from diff
+          const addedCount = newValue.length - prevValue.length;
+          const added = newValue.slice(newValue.length - addedCount);
+          for (const ch of added) {
+            onCharInput(ch);
+          }
+        }
+      } else if (newValue.length < prevValue.length) {
+        // Characters removed (Backspace or text selection delete)
+        if (backspaceHandledInTickRef.current) {
+          prevValueRef.current = newValue;
+          return;
+        }
+        const removedCount = prevValue.length - newValue.length;
         backspaceHandledInTickRef.current = true;
         queueMicrotask(() => {
           backspaceHandledInTickRef.current = false;
         });
-        onBackspace?.();
-        return;
-      }
-
-      // Handle character insertion (insertText, insertCompositionText, insertFromPaste)
-      if (e.data && e.data.length > 0) {
-        // Prevent default DOM mutation so the input value does NOT change,
-        // eliminating WebKit cursor repositioning, IPC lag, and text flicker
-        e.preventDefault();
-
-        beforeInputHandledInTickRef.current = true;
-        queueMicrotask(() => {
-          beforeInputHandledInTickRef.current = false;
-        });
-
-        for (const ch of e.data) {
-          onCharInput(ch);
+        for (let i = 0; i < removedCount; i++) {
+          onBackspace?.();
         }
       }
+
+      prevValueRef.current = newValue;
     };
 
-    // Fallback onChange for environments that do not support canceling beforeinput
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      if (disabled) return;
-      const value = e.target.value;
+      handleValueChange(e.target.value);
+    };
 
-      // If already captured by beforeinput in this tick, safely reset and return
-      if (beforeInputHandledInTickRef.current) {
-        if (inputRef.current) inputRef.current.value = '';
-        return;
-      }
-
-      if (value.length > 0) {
-        for (const ch of value) {
-          onCharInput(ch);
-        }
-      }
-
-      if (inputRef.current) {
-        inputRef.current.value = '';
+    const handleInput = (e: React.FormEvent<HTMLInputElement>) => {
+      const target = e.target as HTMLInputElement;
+      if (target) {
+        handleValueChange(target.value);
       }
     };
 
@@ -144,26 +141,27 @@ export const AdaptiveInputCapture = forwardRef<AdaptiveInputCaptureHandle, Adapt
         data-1p-ignore="true"
         data-lpignore="true"
         disabled={disabled}
+        defaultValue={currentTypedValue}
         onKeyDown={handleKeyDown}
-        onBeforeInput={handleBeforeInput as unknown as (e: React.FormEvent<HTMLInputElement>) => void}
         onChange={handleChange}
+        onInput={handleInput}
         aria-label="Adaptive Typing Input Receiver"
         style={{
           position: 'fixed',
-          bottom: '0px',
+          bottom: '12px',
           left: '50%',
           transform: 'translateX(-50%)',
-          width: '1px',
-          height: '1px',
-          opacity: 0.001,
+          width: '44px',
+          height: '44px',
+          opacity: 0.01,
           fontSize: '16px', // Prevents iOS Safari auto-zoom
-          pointerEvents: 'none',
+          pointerEvents: 'auto',
           border: 'none',
           outline: 'none',
           padding: 0,
           margin: 0,
           background: 'transparent',
-          zIndex: -1,
+          zIndex: 1,
         }}
       />
     );

@@ -199,6 +199,7 @@ export const TypingTest: React.FC<TypingTestProps> = ({
         ref={inputCaptureRef}
         onCharInput={handleCharInput}
         onBackspace={handleBackspace}
+        currentTypedValue={inputHistory}
         disabled={isFinished}
         autoFocus={true}
       />
