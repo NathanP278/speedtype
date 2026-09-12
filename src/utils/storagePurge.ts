@@ -14,6 +14,7 @@ export function purgeLocalDataAndCookies(): void {
       'speedtype_personal_best',
       'speedtype_rivalry_dossier',
       'speedtype_cloud_leaderboard_cache',
+      'speedtype_profile',
       'speedtype_auth_local_user'
     ];
     keysToPurge.forEach(key => localStorage.removeItem(key));

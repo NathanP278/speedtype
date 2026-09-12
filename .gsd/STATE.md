@@ -38,11 +38,15 @@
   - [x] Plan 12.1: Combat telemetry types, Supabase schema extensions, updateProfile in useAuth
   - [x] Plan 12.2: Rewrite AuthModal into 5-stage cyberpunk onboarding wizard with node timeline
   - [x] Plan 12.3: TerminalViewport pilot identity with call-sign & switch hardware display (Commit a0b9ee6)
-- [ ] Phase 13: Live Synchronization, Rigorous Combat Calculations & Hardened Authentication
+- [x] Phase 13: Live Synchronization, Rigorous Combat Calculations & Hardened Authentication
   - [x] Plan 13.1: WPM Math Normalization & Rival AI Pacing Engine (Commits 44b9011, c0f7b75)
   - [x] Plan 13.2: Database Reset, Schema Verification & Minimalist Google Auth Gate
   - [x] Plan 13.3: Live Realtime Synchronization Without Webpage Refresh
   - [x] Plan 13.4: Marketplace Theme Auto-Equip & Connected UX Flows
+- [ ] Phase 14: Google Auth Exclusive & Offline Mode Elimination
+  - [ ] Plan 14.1: Eradicate Offline / Guest / Local Modes & Dead Code
+  - [ ] Plan 14.2: Google OAuth Popup Handshake & Account Selection
+  - [ ] Plan 14.3: Post-Authentication Pilot Handle & Avatar Setup Gate
 
 ## Verification Evidence
 - `npx tsc --noEmit`: Code 0 (0 errors)

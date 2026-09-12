@@ -37,6 +37,11 @@ The stack employs Vite + React + TypeScript + Tailwind CSS + HTML5 Canvas + Web 
 - **Plan 13.3 (Wave 2)**: Live Realtime Synchronization Without Webpage Refresh (reactive 1v1 challenge detection, realtime leaderboard sync, connected result actions).
 - **Plan 13.4 (Wave 2)**: Marketplace Theme Auto-Equip & Connected UX Flows (auto-equip purchased themes, popup palette selector, connected gameplay loops).
 
+### Phase 14: Google Auth Exclusive & Offline Mode Elimination
+- **Plan 14.1 (Wave 1)**: Eradicate Offline / Guest / Local Modes & Dead Code (delete ProfileSetupModal, useProfile, local profile CRUD, purge local accounts).
+- **Plan 14.2 (Wave 2)**: Google OAuth Popup Handshake & Account Selection (skipBrowserRedirect, centered popup, prompt: 'select_account', cross-window sync).
+- **Plan 14.3 (Wave 3)**: Post-Authentication Pilot Handle & Avatar Setup Gate (verified Google gate, prompt handle/avatar only after authentication, Supabase persistence).
+
 ---
 
 ## Phase Dependencies
@@ -48,5 +53,7 @@ flowchart TD
     P3 --> P4["Phase 4: Competitive Duels & Arena"]
     P4 --> P5["Phase 5: UX Simplification & Visual Calm"]
     P5 --> P13["Phase 13: Live Sync, Combat Math & Auth Hardening"]
+    P13 --> P14["Phase 14: Google Auth Exclusive & Offline Mode Elimination"]
 ```
+
 

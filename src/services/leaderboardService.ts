@@ -7,7 +7,7 @@ export interface LeaderboardRecord {
   userId?: string;
   username: string;
   avatar: string;
-  provider: 'google' | 'email' | 'local';
+  provider: 'google' | 'email';
   netWpm: number;
   accuracy: number;
   difficulty: string;
@@ -142,7 +142,7 @@ export async function submitScore(
   window.dispatchEvent(new CustomEvent('speedtype:score-submitted', { detail: localRecord }));
 
   // Submit to Supabase if configured and user is authenticated
-  if (isSupabaseConfigured && supabase && user.id && !user.id.startsWith('local-')) {
+  if (isSupabaseConfigured && supabase && user.id) {
     try {
       const { error } = await supabase.from('leaderboard').insert({
         user_id: user.id,

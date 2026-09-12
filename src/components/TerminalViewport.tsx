@@ -129,7 +129,7 @@ export const TerminalViewport: React.FC<TerminalViewportProps> = ({
                     {currentUser?.callSign || 'PILOT'} // @{displayUsername}
                   </p>
                   <p className="text-[10px] text-zinc-500 truncate mt-0.5">
-                    {currentUser?.email || 'local_fighter'}
+                    {currentUser?.email || 'authenticated_pilot'}
                   </p>
                 </div>
               </div>
