@@ -89,12 +89,14 @@ export function calculateNetWpm(
  * time reading each word before their fingers start moving.
  */
 export function calculateReadingAdjustedWpm(
+  correctKeystrokes: number,
   wordsCompleted: number,
   elapsedSeconds: number
 ): number {
   if (wordsCompleted <= 0 || elapsedSeconds <= 0) return 0;
+  const standardWords = correctKeystrokes / 5;
   const readingDeductionSec = (wordsCompleted * READING_MARGIN_MS) / 1000;
   const effectiveSec = Math.max(0.5, elapsedSeconds - readingDeductionSec);
   const effectiveMin = effectiveSec / 60;
-  return Math.max(0, Math.round(wordsCompleted / effectiveMin));
+  return Math.max(0, Math.round(standardWords / effectiveMin));
 }

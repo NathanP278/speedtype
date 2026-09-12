@@ -38,10 +38,16 @@
   - [x] Plan 12.1: Combat telemetry types, Supabase schema extensions, updateProfile in useAuth
   - [x] Plan 12.2: Rewrite AuthModal into 5-stage cyberpunk onboarding wizard with node timeline
   - [x] Plan 12.3: TerminalViewport pilot identity with call-sign & switch hardware display (Commit a0b9ee6)
+- [ ] Phase 13: Live Synchronization, Rigorous Combat Calculations & Hardened Authentication
+  - [ ] Plan 13.1: WPM Math Normalization & Rival AI Pacing Engine
+  - [ ] Plan 13.2: Database Reset, Schema Verification & Auth Hardening
+  - [ ] Plan 13.3: Live Realtime Synchronization Without Webpage Refresh
+  - [ ] Plan 13.4: Marketplace Theme Auto-Equip & Connected UX Flows
 
 ## Verification Evidence
 - `npx tsc --noEmit`: Code 0 (0 errors)
 - `npm run build`: Vite v6.4.3 production bundle built in 48.56s (dist/assets/index-BdHxLhoQ.js 608.02 kB, index-Db5RLTo-.css 45.34 kB)
 - GitHub Remote: Synchronized with origin/master
+
 
 

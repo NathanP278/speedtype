@@ -92,7 +92,7 @@ export function useSimpleDuel({
       if (elapsedMinutes > 0.01) {
         const rawWpm = Math.round((correctKeystrokes / 5) / elapsedMinutes);
         // Reading-adjusted: subtracts 50ms per completed word, blended 70/30 with raw
-        const adjusted = calculateReadingAdjustedWpm(playerWordIndex, elapsedSec);
+        const adjusted = calculateReadingAdjustedWpm(correctKeystrokes, playerWordIndex, elapsedSec);
         const blended = Math.round(adjusted * 0.7 + rawWpm * 0.3);
         setCurrentWpm(blended);
         setRawCurrentWpm(rawWpm);

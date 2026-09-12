@@ -31,6 +31,12 @@ The stack employs Vite + React + TypeScript + Tailwind CSS + HTML5 Canvas + Web 
 - **Plan 5.4 (Wave 2)**: Idle screen 3-mode card selector & gray token hierarchy documentation.
 - **Plan 5.5 (Wave 3)**: Modern Web Design Layer — physics-based spring easings, @starting-style modal animations, View Transitions API KO screen, CSS noise texture, JetBrains Mono, focus-visible system, sibling-index() stagger.
 
+### Phase 13: Live Synchronization, Rigorous Combat Calculations & Hardened Authentication
+- **Plan 13.1 (Wave 1)**: WPM Math Normalization & Rival AI Pacing Engine (keystroke WPM, symmetric variance, drift-free timestamp scheduler).
+- **Plan 13.2 (Wave 1)**: Database Reset, Schema Verification & Auth Hardening (clean reset SQL, storage purge utility, Google OAuth reliability & guest fallback).
+- **Plan 13.3 (Wave 2)**: Live Realtime Synchronization Without Webpage Refresh (reactive 1v1 challenge detection, realtime leaderboard sync, connected result actions).
+- **Plan 13.4 (Wave 2)**: Marketplace Theme Auto-Equip & Connected UX Flows (auto-equip purchased themes, popup palette selector, connected gameplay loops).
+
 ---
 
 ## Phase Dependencies
@@ -41,4 +47,6 @@ flowchart TD
     P2 --> P3["Phase 3: Progression & Black Market"]
     P3 --> P4["Phase 4: Competitive Duels & Arena"]
     P4 --> P5["Phase 5: UX Simplification & Visual Calm"]
+    P5 --> P13["Phase 13: Live Sync, Combat Math & Auth Hardening"]
 ```
+
