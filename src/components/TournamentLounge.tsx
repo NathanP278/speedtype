@@ -138,8 +138,8 @@ export const TournamentLounge: React.FC<TournamentLoungeProps> = ({
       c2Word: w2,
       c1Typed: '',
       c2Typed: '',
-      c1Wpm: c1 ? Math.max(15, c1.baseWpm + Math.round(-20 + Math.random() * 25)) : 100,
-      c2Wpm: c2 ? Math.max(15, c2.baseWpm + Math.round(-20 + Math.random() * 25)) : 100,
+      c1Wpm: c1 ? Math.max(15, c1.baseWpm + Math.round(-5 + Math.random() * 10)) : 100,
+      c2Wpm: c2 ? Math.max(15, c2.baseWpm + Math.round(-5 + Math.random() * 10)) : 100,
       c1TypoFlash: false,
       c2TypoFlash: false,
       isSimulating: false,
@@ -245,8 +245,8 @@ export const TournamentLounge: React.FC<TournamentLoungeProps> = ({
     const c1 = selectedMatch.contestant1;
     const c2 = selectedMatch.contestant2;
 
-    const c1EffectiveWpm = Math.max(15, c1.baseWpm + Math.round(-20 + Math.random() * 25));
-    const c2EffectiveWpm = Math.max(15, c2.baseWpm + Math.round(-20 + Math.random() * 25));
+    const c1EffectiveWpm = Math.max(15, c1.baseWpm + Math.round(-5 + Math.random() * 10));
+    const c2EffectiveWpm = Math.max(15, c2.baseWpm + Math.round(-5 + Math.random() * 10));
 
     // Probability weighted by WPM and accuracy
     const p1 = c1EffectiveWpm * c1.accuracy;
@@ -265,8 +265,8 @@ export const TournamentLounge: React.FC<TournamentLoungeProps> = ({
     const c1 = selectedMatch.contestant1;
     const c2 = selectedMatch.contestant2;
 
-    const c1EffectiveWpm = Math.max(15, c1.baseWpm + Math.round(-20 + Math.random() * 25));
-    const c2EffectiveWpm = Math.max(15, c2.baseWpm + Math.round(-20 + Math.random() * 25));
+    const c1EffectiveWpm = Math.max(15, c1.baseWpm + Math.round(-5 + Math.random() * 10));
+    const c2EffectiveWpm = Math.max(15, c2.baseWpm + Math.round(-5 + Math.random() * 10));
 
     if (simTimerRef.current !== null) {
       window.clearInterval(simTimerRef.current);

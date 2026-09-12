@@ -56,9 +56,25 @@ export function drawRivalWpm(
   const basePlayerWpm = calibration?.netWpm ?? 65;
   const baseWpm = Math.max(25, Math.round(basePlayerWpm * config.multiplier));
 
-  // Variance window: -20 to +5 (negative-skewed — rivals are occasionally easier, rarely harder)
-  const varianceLow = -20;
-  const varianceHigh = 5;
+  let varianceLow = -5;
+  let varianceHigh = 5;
+  
+  switch (difficulty) {
+    case 'relaxed':
+    case 'equal':
+      varianceLow = -5;
+      varianceHigh = 5;
+      break;
+    case 'challenger':
+      varianceLow = -4;
+      varianceHigh = 6;
+      break;
+    case 'boss':
+      varianceLow = -3;
+      varianceHigh = 7;
+      break;
+  }
+
   const variance = Math.round(varianceLow + Math.random() * (varianceHigh - varianceLow));
 
   return Math.max(15, baseWpm + variance);

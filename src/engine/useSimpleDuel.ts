@@ -72,6 +72,7 @@ export function useSimpleDuel({
 
   const startTimeRef = useRef<number | null>(null);
   const rivalTimerRef = useRef<number | null>(null);
+  const rivalTotalCharsRef = useRef<number>(0);
   const eventsRef = useRef<CompactGhostEvent[]>([]);
 
   const diffConfig = RIVAL_DIFFICULTIES[difficulty] || RIVAL_DIFFICULTIES.equal;
@@ -181,22 +182,24 @@ export function useSimpleDuel({
     const targetWordsCount = wordsList.length;
 
     const scheduleNextRivalChar = () => {
-      if (isFinished) return;
+      if (isFinished || !startTimeRef.current) return;
 
-      // Characters per second = (WPM * 5) / 60
       const charsPerSec = (rivalTargetWpm * 5) / 60;
-      const baseDelayMs = 1000 / charsPerSec;
-      // Add natural +/- 20% jitter for human feel
-      const jitter = (Math.random() - 0.5) * (baseDelayMs * 0.4);
-      const delay = Math.max(40, baseDelayMs + jitter);
+      const expectedElapsedMs = (rivalTotalCharsRef.current / charsPerSec) * 1000;
+      
+      const jitter = (Math.random() - 0.5) * 20;
+      const nextDelay = Math.max(10, (startTimeRef.current + expectedElapsedMs) - Date.now() + jitter);
 
       rivalTimerRef.current = window.setTimeout(() => {
+        let completedWord = false;
+
         setRivalCharIndex((prevChar) => {
           const currentRivalWord = wordsList[rivalWordIndex];
           if (!currentRivalWord) return 0;
 
           const nextChar = prevChar + 1;
           if (nextChar >= currentRivalWord.length) {
+            completedWord = true;
             // Completed word
             setRivalWordIndex((prevWord) => {
               const nextWord = prevWord + 1;
@@ -210,10 +213,18 @@ export function useSimpleDuel({
           return nextChar;
         });
 
+        if (completedWord) {
+          const pauseMs = 80 + Math.random() * 70;
+          const pauseChars = (pauseMs / 1000) * charsPerSec;
+          rivalTotalCharsRef.current += (1 + pauseChars);
+        } else {
+          rivalTotalCharsRef.current += 1;
+        }
+
         if (!isFinished && rivalWordIndex < targetWordsCount) {
           scheduleNextRivalChar();
         }
-      }, delay);
+      }, nextDelay);
     };
 
     scheduleNextRivalChar();
@@ -327,6 +338,7 @@ export function useSimpleDuel({
     setIsFinished(false);
     setDuelResult(null);
     startTimeRef.current = null;
+    rivalTotalCharsRef.current = 0;
     eventsRef.current = [];
 
     if (rivalTimerRef.current !== null) {
@@ -361,6 +373,7 @@ export function useSimpleDuel({
       setIsFinished(false);
       setDuelResult(null);
       startTimeRef.current = null;
+      rivalTotalCharsRef.current = 0;
       eventsRef.current = [];
 
       if (rivalTimerRef.current !== null) {
