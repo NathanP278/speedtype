@@ -1,8 +1,8 @@
-export interface CombatTelemetry {
-  switchType: 'cherry_blue' | 'cherry_brown' | 'cherry_red' | 'topre' | 'laptop_scissor' | 'membrane';
-  keyboardLayout: 'qwerty' | 'colemak' | 'dvorak' | 'ortholinear' | 'other';
-  combatGoal: 'speed_demon' | 'zero_typos' | 'climb_ladder' | 'flow_state';
-  preferredTier: 'relaxed' | 'equal' | 'challenger' | 'boss';
+export interface UserTelemetry {
+  referralSource: 'reddit' | 'twitter_x' | 'discord' | 'youtube' | 'friend' | 'search_engine' | 'other';
+  typingExperience: 'beginner' | 'intermediate' | 'expert' | 'competitive';
+  primaryDevice: 'mechanical_keyboard' | 'laptop' | 'ergonomic' | 'standard';
+  dailyTargetMinutes: '10_mins' | '20_mins' | '45_mins' | '60_plus';
 }
 
 export interface UserAccount {
@@ -12,7 +12,7 @@ export interface UserAccount {
   avatar: string;
   displayName?: string;
   callSign?: string;
-  telemetry?: CombatTelemetry;
+  telemetry?: UserTelemetry;
   onboardingComplete: boolean;
   provider: 'email' | 'google';
   createdAt: number;
@@ -25,7 +25,7 @@ export interface SignUpData {
   avatar: string;
   displayName?: string;
   callSign?: string;
-  telemetry?: CombatTelemetry;
+  telemetry?: UserTelemetry;
 }
 
 export interface SignInData {

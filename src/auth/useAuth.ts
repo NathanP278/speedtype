@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase.ts';
-import { UserAccount, CombatTelemetry } from './authTypes.ts';
+import { UserAccount, UserTelemetry } from './authTypes.ts';
+import { purgeLocalDataAndCookies } from '../utils/storagePurge.ts';
 
 const LOCAL_FALLBACK_USER_KEY = 'speedtype_auth_local_user';
 
@@ -188,7 +189,7 @@ export function useAuth() {
     avatar: string;
     displayName?: string;
     callSign?: string;
-    telemetry?: CombatTelemetry;
+    telemetry?: UserTelemetry;
   }): Promise<{ success: boolean; error?: string }> => {
     if (!user) return { success: false, error: 'No active session' };
 
@@ -234,7 +235,7 @@ export function useAuth() {
     return { success: true };
   }, [user]);
 
-  // Sign out
+  // Sign out & complete storage purge
   const signOut = useCallback(async (): Promise<void> => {
     setIsLoading(true);
     setLocalFallbackUser(null);
@@ -248,7 +249,9 @@ export function useAuth() {
       }
     }
 
+    purgeLocalDataAndCookies();
     setIsLoading(false);
+    window.location.reload();
   }, []);
 
   return {

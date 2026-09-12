@@ -139,19 +139,19 @@ export const TerminalViewport: React.FC<TerminalViewportProps> = ({
                   <span className="text-zinc-500">AUTH PROVIDER:</span>
                   <span className="text-blue-400 font-bold">GOOGLE OAUTH</span>
                 </div>
-                {currentUser?.telemetry?.switchType && (
+                {currentUser?.telemetry?.referralSource && (
                   <div className="flex justify-between">
-                    <span className="text-zinc-500">SWITCH RIG:</span>
+                    <span className="text-zinc-500">DISCOVERY:</span>
                     <span className="text-zinc-300 font-bold uppercase">
-                      {currentUser.telemetry.switchType.replace('_', ' ')}
+                      {currentUser.telemetry.referralSource.replace('_', ' ')}
                     </span>
                   </div>
                 )}
-                {currentUser?.telemetry?.keyboardLayout && (
+                {currentUser?.telemetry?.typingExperience && (
                   <div className="flex justify-between">
-                    <span className="text-zinc-500">LAYOUT:</span>
+                    <span className="text-zinc-500">EXPERIENCE:</span>
                     <span className="text-zinc-300 font-bold uppercase">
-                      {currentUser.telemetry.keyboardLayout}
+                      {currentUser.telemetry.typingExperience}
                     </span>
                   </div>
                 )}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { AVATAR_OPTIONS, validateUsername } from '../profile/profile.ts';
-import { UserAccount, CombatTelemetry } from '../auth/authTypes.ts';
+import { UserAccount, UserTelemetry } from '../auth/authTypes.ts';
 
 interface AuthModalProps {
   currentUser: UserAccount | null;
@@ -10,7 +10,7 @@ interface AuthModalProps {
     avatar: string;
     displayName?: string;
     callSign?: string;
-    telemetry?: CombatTelemetry;
+    telemetry?: UserTelemetry;
   }) => Promise<{ success: boolean; error?: string }>;
   isLoading: boolean;
   serverError: string | null;
@@ -29,24 +29,31 @@ const CALL_SIGNS = [
 ];
 
 const TELEMETRY_QUESTIONS = {
-  switchTypes: [
-    { id: 'cherry_blue', label: 'Tactile Clicky (Blue)', desc: 'Sharp audible snap & tactile peak' },
-    { id: 'cherry_brown', label: 'Tactile Silent (Brown)', desc: 'Smooth resistance bump, stealth typing' },
-    { id: 'cherry_red', label: 'Linear Speed (Red)', desc: 'Zero bump, pure uninterrupted velocity' },
-    { id: 'laptop_scissor', label: 'Scissor Switch (Laptop)', desc: 'Ultra-low travel, instant actuation' },
-    { id: 'topre', label: 'Electro-Capacitive (Topre)', desc: 'Cushioned thock with gentle rebound' },
+  referralSources: [
+    { id: 'reddit', label: 'Reddit', desc: 'r/MechanicalKeyboards, r/webdev, gaming subs' },
+    { id: 'twitter_x', label: 'Twitter / X', desc: 'Tech feeds, esports or developer clips' },
+    { id: 'youtube', label: 'YouTube / Streams', desc: 'Typing race gameplay or tech creators' },
+    { id: 'discord', label: 'Discord Community', desc: 'Friend recommendation or gaming server' },
+    { id: 'search_engine', label: 'Search Engine', desc: 'Google, DuckDuckGo typing tests query' },
+    { id: 'friend', label: 'Friend / Colleague', desc: 'Direct 1v1 challenge or word of mouth' },
   ] as const,
-  layouts: [
-    { id: 'qwerty', label: 'QWERTY', desc: 'Standard battle layout' },
-    { id: 'colemak', label: 'Colemak', desc: 'Ergonomic home row cluster' },
-    { id: 'dvorak', label: 'Dvorak', desc: 'Alternate hand rhythm engine' },
-    { id: 'ortholinear', label: 'Ortholinear / Split', desc: 'Column-staggered grid setup' },
+  typingExperiences: [
+    { id: 'beginner', label: 'Recruit (< 50 WPM)', desc: 'Developing speed & home row muscle memory' },
+    { id: 'intermediate', label: 'Operative (50 - 85 WPM)', desc: 'Solid touch-typing and steady rhythm' },
+    { id: 'expert', label: 'Veteran (85 - 120 WPM)', desc: 'Fast burst velocity and high accuracy' },
+    { id: 'competitive', label: 'Apex (> 120 WPM)', desc: 'Competitive esports speed demon' },
   ] as const,
-  combatGoals: [
-    { id: 'speed_demon', label: 'Max Velocity (120+ WPM)', desc: 'Pure speed, overwhelming opponent APM' },
-    { id: 'zero_typos', label: 'Absolute Accuracy (99%+)', desc: 'Laser precision, zero friction penalty' },
-    { id: 'climb_ladder', label: 'Tournament Dominance', desc: 'Climbing global leaderboards & boss duels' },
-    { id: 'flow_state', label: 'Deep Rhythm / Flow', desc: 'Hypnotic sensory immersion and keystroke zen' },
+  primaryDevices: [
+    { id: 'mechanical_keyboard', label: 'Custom / Mechanical', desc: 'Dedicated mechanical switch desk rig' },
+    { id: 'laptop', label: 'Laptop Keyboard', desc: 'Low-profile integrated scissor switches' },
+    { id: 'ergonomic', label: 'Split / Ergonomic', desc: 'Ortholinear, Alice, or column-staggered' },
+    { id: 'standard', label: 'Standard Office', desc: 'Membrane or default workstation board' },
+  ] as const,
+  dailyTargets: [
+    { id: '10_mins', label: '10 Min Quick Duel', desc: 'Short daily calibration warm-up' },
+    { id: '20_mins', label: '20 Min Ranked Grind', desc: 'Climbing ladders and beating rivals' },
+    { id: '45_mins', label: '45 Min Speed Training', desc: 'Intensive endurance and accuracy drills' },
+    { id: '60_plus', label: '60+ Min Hardcore Flow', desc: 'Deep session typing zen' },
   ] as const,
 };
 
@@ -70,11 +77,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [avatar, setAvatar] = useState<string>(() => currentUser?.avatar || '⚡');
   const [callSign, setCallSign] = useState<string>(() => currentUser?.callSign || 'VIPER');
   const [displayName, setDisplayName] = useState<string>(() => currentUser?.displayName || '');
-  const [telemetry, setTelemetry] = useState<CombatTelemetry>(() => ({
-    switchType: 'cherry_blue',
-    keyboardLayout: 'qwerty',
-    combatGoal: 'speed_demon',
-    preferredTier: 'equal',
+  const [telemetry, setTelemetry] = useState<UserTelemetry>(() => ({
+    referralSource: 'twitter_x',
+    typingExperience: 'intermediate',
+    primaryDevice: 'mechanical_keyboard',
+    dailyTargetMinutes: '20_mins',
   }));
 
   const [localError, setLocalError] = useState<string | null>(null);
@@ -297,7 +304,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 <span>CHOOSE PILOT HANDLE</span>
               </h2>
               <p className="text-xs text-zinc-400">
-                Your combat tag shown on rival HUDs and the global Hall of Fighters.
+                Your unique combat handle shown across rival HUDs and the global Hall of Fighters.
               </p>
             </div>
 
@@ -494,99 +501,99 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           </div>
         )}
 
-        {/* ── STEP 4: COMBAT TELEMETRY QUESTIONNAIRE ─────────────────────────── */}
+        {/* ── STEP 4: USER PROFILE TELEMETRY SURVEY ─────────────────────────── */}
         {currentStep === 4 && (
           <div className="py-2 space-y-5">
             <div>
               <h2 className="text-base font-black text-white tracking-widest mb-1 flex items-center gap-2">
                 <span>[04]</span>
-                <span>COMBAT TELEMETRY SURVEY</span>
+                <span>PILOT DISCOVERY TELEMETRY</span>
               </h2>
               <p className="text-xs text-zinc-400">
-                Tune your profile telemetry to calibrate opponent matchmaking.
+                Help us calibrate the community and personalize your combat training regimen.
               </p>
             </div>
 
-            {/* Switch Hardware Selector */}
+            {/* Referral Source Questionnaire */}
             <div>
               <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">
-                1. PRIMARY MECHANICAL SWITCH RIG
+                1. WHERE DID YOU DISCOVER SPEEDTYPE?
               </label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {TELEMETRY_QUESTIONS.switchTypes.map((sw) => {
-                  const active = telemetry.switchType === sw.id;
+                {TELEMETRY_QUESTIONS.referralSources.map((rf) => {
+                  const active = telemetry.referralSource === rf.id;
                   return (
                     <button
-                      key={sw.id}
+                      key={rf.id}
                       type="button"
-                      onClick={() => setTelemetry((prev) => ({ ...prev, switchType: sw.id }))}
+                      onClick={() => setTelemetry((prev) => ({ ...prev, referralSource: rf.id }))}
                       className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer focus-ring ${
                         active
                           ? 'bg-zinc-900 border-[var(--theme-text)] text-white shadow-sm'
-                          : 'bg-zinc-950 border-zinc-850 text-zinc-400 hover:border-zinc-700'
+                          : 'bg-zinc-950 border-zinc-800 text-zinc-400 hover:border-zinc-700'
                       }`}
                     >
                       <p className="font-bold text-xs flex items-center justify-between">
-                        <span>{sw.label}</span>
+                        <span>{rf.label}</span>
                         {active && <span className="text-[var(--theme-text)] text-[10px]">●</span>}
                       </p>
-                      <p className="text-[10px] text-zinc-500 mt-0.5">{sw.desc}</p>
+                      <p className="text-[10px] text-zinc-500 mt-0.5">{rf.desc}</p>
                     </button>
                   );
                 })}
               </div>
             </div>
 
-            {/* Keyboard Layout */}
+            {/* Typing Experience Tier */}
             <div>
               <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">
-                2. BATTLE MATRIX LAYOUT
+                2. CURRENT TYPING PROFICIENCY LEVEL
               </label>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {TELEMETRY_QUESTIONS.layouts.map((ly) => {
-                  const active = telemetry.keyboardLayout === ly.id;
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {TELEMETRY_QUESTIONS.typingExperiences.map((exp) => {
+                  const active = telemetry.typingExperience === exp.id;
                   return (
                     <button
-                      key={ly.id}
+                      key={exp.id}
                       type="button"
-                      onClick={() => setTelemetry((prev) => ({ ...prev, keyboardLayout: ly.id }))}
+                      onClick={() => setTelemetry((prev) => ({ ...prev, typingExperience: exp.id }))}
+                      className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer focus-ring ${
+                        active
+                          ? 'bg-zinc-900 border-[var(--theme-text)] text-white shadow-sm'
+                          : 'bg-zinc-950 border-zinc-800 text-zinc-400 hover:border-zinc-700'
+                      }`}
+                    >
+                      <p className="font-bold text-xs flex items-center justify-between">
+                        <span>{exp.label}</span>
+                        {active && <span className="text-[var(--theme-text)] text-[10px]">●</span>}
+                      </p>
+                      <p className="text-[10px] text-zinc-500 mt-0.5">{exp.desc}</p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Daily Target Training */}
+            <div>
+              <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">
+                3. DAILY COMBAT GOAL
+              </label>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {TELEMETRY_QUESTIONS.dailyTargets.map((dt) => {
+                  const active = telemetry.dailyTargetMinutes === dt.id;
+                  return (
+                    <button
+                      key={dt.id}
+                      type="button"
+                      onClick={() => setTelemetry((prev) => ({ ...prev, dailyTargetMinutes: dt.id }))}
                       className={`p-2 rounded-lg border text-center transition-all cursor-pointer focus-ring ${
                         active
                           ? 'bg-zinc-900 border-[var(--theme-text)] text-[var(--theme-text)] font-bold'
                           : 'bg-zinc-950 border-zinc-800 text-zinc-400 hover:border-zinc-700'
                       }`}
                     >
-                      <p className="text-xs">{ly.label}</p>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Combat Goal */}
-            <div>
-              <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">
-                3. COMBAT OBJECTIVE
-              </label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {TELEMETRY_QUESTIONS.combatGoals.map((cg) => {
-                  const active = telemetry.combatGoal === cg.id;
-                  return (
-                    <button
-                      key={cg.id}
-                      type="button"
-                      onClick={() => setTelemetry((prev) => ({ ...prev, combatGoal: cg.id }))}
-                      className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer focus-ring ${
-                        active
-                          ? 'bg-zinc-900 border-[var(--theme-text)] text-white shadow-sm'
-                          : 'bg-zinc-950 border-zinc-850 text-zinc-400 hover:border-zinc-700'
-                      }`}
-                    >
-                      <p className="font-bold text-xs flex items-center justify-between">
-                        <span>{cg.label}</span>
-                        {active && <span className="text-[var(--theme-text)] text-[10px]">●</span>}
-                      </p>
-                      <p className="text-[10px] text-zinc-500 mt-0.5">{cg.desc}</p>
+                      <p className="text-xs">{dt.label}</p>
                     </button>
                   );
                 })}
@@ -621,7 +628,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 <span>DOSSIER VERIFICATION & LAUNCH</span>
               </h2>
               <p className="text-xs text-zinc-400">
-                Confirm your pilot dossier before initializing arena access.
+                Confirm your verified pilot credentials before initializing arena access.
               </p>
             </div>
 
@@ -641,7 +648,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                       {displayName.trim() || username}
                     </h3>
                     <span className="text-[9px] px-1.5 py-0.5 bg-blue-950/80 border border-blue-800 text-blue-400 rounded font-bold">
-                      VERIFIED PILOT
+                      VERIFIED GOOGLE PILOT
                     </span>
                   </div>
                   <p className="text-xs text-[var(--theme-text)] font-bold">
@@ -651,28 +658,28 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </div>
 
               <div className="grid grid-cols-2 gap-3 text-[11px]">
-                <div className="p-2.5 bg-zinc-950/80 rounded-xl border border-zinc-850">
+                <div className="p-2.5 bg-zinc-950/80 rounded-xl border border-zinc-800">
                   <span className="text-zinc-500 block text-[9px] uppercase tracking-wider mb-0.5">
-                    HARDWARE RIG
+                    DISCOVERED VIA
                   </span>
                   <span className="text-zinc-200 font-bold uppercase">
-                    {telemetry.switchType.replace('_', ' ')}
+                    {telemetry.referralSource.replace('_', ' ')}
                   </span>
                 </div>
-                <div className="p-2.5 bg-zinc-950/80 rounded-xl border border-zinc-850">
+                <div className="p-2.5 bg-zinc-950/80 rounded-xl border border-zinc-800">
                   <span className="text-zinc-500 block text-[9px] uppercase tracking-wider mb-0.5">
-                    MATRIX LAYOUT
+                    PROFICIENCY TIER
                   </span>
                   <span className="text-zinc-200 font-bold uppercase">
-                    {telemetry.keyboardLayout}
+                    {telemetry.typingExperience}
                   </span>
                 </div>
-                <div className="p-2.5 bg-zinc-950/80 rounded-xl border border-zinc-850 col-span-2">
+                <div className="p-2.5 bg-zinc-950/80 rounded-xl border border-zinc-800 col-span-2">
                   <span className="text-zinc-500 block text-[9px] uppercase tracking-wider mb-0.5">
-                    COMBAT DOCTRINE
+                    DAILY TARGET TRAINING
                   </span>
                   <span className="text-[var(--theme-text)] font-bold uppercase">
-                    {telemetry.combatGoal.replace('_', ' ')}
+                    {telemetry.dailyTargetMinutes.replace('_', ' ')}
                   </span>
                 </div>
               </div>
