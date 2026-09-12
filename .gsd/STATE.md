@@ -41,8 +41,8 @@
 - [ ] Phase 13: Live Synchronization, Rigorous Combat Calculations & Hardened Authentication
   - [x] Plan 13.1: WPM Math Normalization & Rival AI Pacing Engine (Commits 44b9011, c0f7b75)
   - [x] Plan 13.2: Database Reset, Schema Verification & Minimalist Google Auth Gate
-  - [ ] Plan 13.3: Live Realtime Synchronization Without Webpage Refresh
-  - [ ] Plan 13.4: Marketplace Theme Auto-Equip & Connected UX Flows
+  - [x] Plan 13.3: Live Realtime Synchronization Without Webpage Refresh
+  - [x] Plan 13.4: Marketplace Theme Auto-Equip & Connected UX Flows
 
 ## Verification Evidence
 - `npx tsc --noEmit`: Code 0 (0 errors)
