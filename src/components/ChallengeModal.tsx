@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   ChallengePayload,
   encodeChallengeCode,
@@ -6,7 +6,7 @@ import {
   ChallengeGhostRunner,
   buildChallengeGhostRunner,
 } from '../social/challengeCode.ts';
-import { GhostRunData } from '../social/ghostRecorder.ts';
+import { GhostRunData, getLastRun } from '../social/ghostRecorder.ts';
 
 interface ChallengeModalProps {
   isOpen: boolean;
@@ -35,10 +35,22 @@ export const ChallengeModal: React.FC<ChallengeModalProps> = ({
   isOpen,
   onClose,
   playerProfile,
-  lastRun,
+  lastRun: initialLastRun,
   onAcceptChallenge,
 }) => {
   const [activeTab, setActiveTab] = useState<Tab>('create');
+  const [lastRun, setLastRun] = useState<GhostRunData | null>(initialLastRun);
+
+  useEffect(() => {
+    if (isOpen) {
+      const freshRun = getLastRun();
+      if (freshRun) {
+        setLastRun(freshRun);
+      } else {
+        setLastRun(initialLastRun);
+      }
+    }
+  }, [isOpen, initialLastRun, activeTab]);
 
   // Create tab state
   const [generatedCode, setGeneratedCode] = useState<string | null>(null);
