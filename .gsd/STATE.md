@@ -59,16 +59,16 @@
   - [x] Plan 16.1: Zero-Latency Mobile Input Engine & Virtual Keyboard Pipeline (Commit 5b7d42d)
   - [x] Plan 16.2: Spatial Elegance & Uncluttered Fluid Mobile Layout (Commit 8d06ff1)
   - [x] Plan 16.3: Calibration Polish & Automated Input Validation Suite (Commit 6de86e0)
-- [ ] Phase 17: Multi-Device Calibration Profiles & Mobile Hardening
-  - [ ] Plan 17.1: Multi-Device Calibration Storage, Anti-Mismatch Gate & Device Profile Mapping
-  - [ ] Plan 17.2: Zero-Lag Controlled Buffer Input Pipeline & Rapid IME Synchronization
-  - [ ] Plan 17.3: Intentional Mobile UI Overhaul & Spatial Aesthetics
-  - [ ] Plan 17.4: Mobile Viewport Anti-Cutoff Geometry & Automated Verification Suite
+- [x] Phase 17: Multi-Device Calibration Profiles & Mobile Hardening
+  - [x] Plan 17.1: Multi-Device Calibration Storage, Anti-Mismatch Gate & Device Profile Mapping (Commit c616f41)
+  - [x] Plan 17.2: Zero-Lag Controlled Buffer Input Pipeline & Rapid IME Synchronization (Commit cb897c5)
+  - [x] Plan 17.3: Intentional Mobile UI Overhaul & Spatial Aesthetics (Commit aa7ab71)
+  - [x] Plan 17.4: Mobile Viewport Anti-Cutoff Geometry & Automated Verification Suite (Commit 99e2340)
 
 ## Verification Evidence
-- `npx tsx test/run-all-tests.ts`: Code 0 (193/193 assertions passed across Tiers 1-4 + Phase 15 + Phase 16)
-- `npm run build`: Vite v6.4.3 production bundle built in 4.23s (dist/assets/index-cSZU_m7D.js 627.29 kB, index-CoeOcRGW.css 47.67 kB)
-- Phase 16 Commits: `5b7d42d`, `8d06ff1`, `6de86e0`
+- `npx tsx test/run-all-tests.ts`: Code 0 (199/199 assertions passed across Tiers 1-4 + Phase 15 + Phase 16 + Phase 17)
+- `npm run build`: Vite v6.4.3 production bundle built in 4.39s
+- Phase 17 Commits: `c616f41`, `cb897c5`, `aa7ab71`, `99e2340`
 
 
 
