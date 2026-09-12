@@ -32,6 +32,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   const activeError = localError || serverError;
 
+  React.useEffect(() => {
+    if (currentUser) {
+      handleInputRef.current?.focus();
+    }
+  }, [currentUser]);
+
   const handleFinalize = useCallback(async () => {
     setLocalError(null);
     const err = validateUsername(username);
@@ -133,9 +139,20 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         ) : (
           /* STATE B: Authenticated but missing username (Onboarding) */
           <div className="flex flex-col w-full text-left py-4">
-            <h2 className="text-xl font-black text-white tracking-widest mb-6 border-b border-zinc-800 pb-4 text-center">
+            <h2 className="text-xl font-black text-white tracking-widest mb-4 border-b border-zinc-800 pb-4 text-center">
               CHOOSE YOUR PILOT HANDLE
             </h2>
+
+            {/* Confirmed Google Account Badge */}
+            <div className="flex items-center justify-between px-4 py-2.5 bg-zinc-900/70 border border-zinc-800 rounded-xl mb-6 text-xs">
+              <span className="text-zinc-400 font-bold uppercase tracking-wider flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                GOOGLE ACCOUNT
+              </span>
+              <span className="text-white font-mono font-semibold truncate max-w-[240px]">
+                {currentUser?.email}
+              </span>
+            </div>
 
             <div className="space-y-6">
               <div>
@@ -147,7 +164,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     ref={handleInputRef}
                     type="text"
                     value={username}
-                    onChange={(e) => setUsername(e.target.value.toLowerCase())}
+                    onChange={(e) => {
+                      setUsername(e.target.value.toLowerCase());
+                      setLocalError(null);
+                    }}
                     onKeyDown={(e) => e.key === 'Enter' && handleFinalize()}
                     maxLength={20}
                     placeholder="e.g. cyber_strike"

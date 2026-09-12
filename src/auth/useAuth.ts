@@ -213,9 +213,6 @@ export function useAuth() {
       onboardingComplete: true,
     };
 
-    // Update local immediately
-    setUser(updatedUser);
-
     if (isSupabaseConfigured && supabase) {
       try {
         const { error: upsertErr } = await supabase
@@ -233,13 +230,20 @@ export function useAuth() {
           });
 
         if (upsertErr) {
-          console.warn('[useAuth] Supabase profile sync warning:', upsertErr.message);
+          console.warn('[useAuth] Supabase profile sync error:', upsertErr.message);
+          const friendlyError = upsertErr.message.toLowerCase().includes('unique')
+            ? 'That handle is already claimed by another pilot. Please choose another.'
+            : upsertErr.message;
+          return { success: false, error: friendlyError };
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error('[useAuth] Failed to push profile update to cloud:', err);
+        return { success: false, error: err?.message || 'Failed to sync profile to cloud' };
       }
     }
 
+    // Update user state upon confirmed persistence
+    setUser(updatedUser);
     return { success: true };
   }, [user]);
 
