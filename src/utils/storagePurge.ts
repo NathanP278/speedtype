@@ -4,7 +4,21 @@
  */
 export function purgeLocalDataAndCookies(): void {
   try {
-    // 1. Clear all localStorage
+    // 1. Explicitly clear all speedtype keys (to guarantee no residual mock/guest data)
+    const keysToPurge = [
+      'speedtype_user_calibration',
+      'speedtype_economy_balance',
+      'speedtype_economy_unlocked',
+      'speedtype_economy_equipped',
+      'speedtype_last_run',
+      'speedtype_personal_best',
+      'speedtype_rivalry_dossier',
+      'speedtype_cloud_leaderboard_cache',
+      'speedtype_auth_local_user'
+    ];
+    keysToPurge.forEach(key => localStorage.removeItem(key));
+    
+    // Clear all localStorage as a fallback
     localStorage.clear();
 
     // 2. Clear all sessionStorage

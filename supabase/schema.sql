@@ -12,7 +12,7 @@ create table if not exists public.profiles (
   call_sign text default 'PILOT',
   telemetry jsonb default '{}'::jsonb,
   onboarding_complete boolean default false,
-  provider text not null default 'email',
+  provider text not null default 'google',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -45,6 +45,7 @@ declare
   auth_provider text;
 begin
   candidate_username := coalesce(
+    new.raw_user_meta_data->>'full_name',
     new.raw_user_meta_data->>'username',
     split_part(new.email, '@', 1)
   );
@@ -55,8 +56,8 @@ begin
     candidate_username := 'pilot_' || substr(new.id::text, 1, 6);
   end if;
 
-  candidate_avatar := coalesce(new.raw_user_meta_data->>'avatar', '⚡');
-  auth_provider := coalesce(new.app_metadata->>'provider', 'email');
+  candidate_avatar := coalesce(new.raw_user_meta_data->>'avatar_url', '⚡');
+  auth_provider := coalesce(new.app_metadata->>'provider', 'google');
 
   insert into public.profiles (id, username, avatar, provider, created_at, updated_at)
   values (new.id, candidate_username, candidate_avatar, auth_provider, now(), now())
@@ -79,7 +80,7 @@ create table if not exists public.leaderboard (
   user_id uuid references auth.users on delete cascade not null,
   username text not null,
   avatar text not null default '⚡',
-  provider text not null default 'email',
+  provider text not null default 'google',
   net_wpm integer not null check (net_wpm >= 1 and net_wpm <= 350),
   accuracy numeric(5,2) not null check (accuracy >= 0 and accuracy <= 100),
   difficulty text not null,
