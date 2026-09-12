@@ -15,6 +15,7 @@ interface BlackMarketModalProps {
   equipped: PlayerEquipped;
   onBuy: (item: MarketItem) => boolean;
   onEquip: (category: CosmeticCategory, id: string) => void;
+  onBuyAndEquip?: (item: MarketItem) => boolean;
 }
 
 const CATEGORIES: { id: CosmeticCategory; label: string }[] = [
@@ -32,8 +33,25 @@ export const BlackMarketModal: React.FC<BlackMarketModalProps> = ({
   equipped,
   onBuy,
   onEquip,
+  onBuyAndEquip,
 }) => {
   const [activeTab, setActiveTab] = useState<CosmeticCategory>('palette');
+  const [justEquipped, setJustEquipped] = useState<string | null>(null);
+
+  const handleBuyAndEquip = (item: MarketItem) => {
+    if (onBuyAndEquip) {
+      const success = onBuyAndEquip(item);
+      if (success) {
+        if (item.category === 'palette') {
+          setJustEquipped(item.name);
+          setTimeout(() => setJustEquipped(null), 3000);
+        }
+        onEquip(item.category, item.id);
+      }
+      return success;
+    }
+    return false;
+  };
 
   // Listen for Escape key
   useEffect(() => {
@@ -107,6 +125,12 @@ export const BlackMarketModal: React.FC<BlackMarketModalProps> = ({
           })}
         </div>
 
+        {justEquipped && (
+          <div className="mx-5 mb-3 p-3 bg-[var(--theme-dim)]/30 border border-[var(--theme-text)] rounded-xl text-xs text-[var(--theme-text)] font-bold text-center">
+            🎨 THEME EQUIPPED: {justEquipped} — Live Phosphor Activated
+          </div>
+        )}
+
         {/* Item Catalog Grid */}
         <div className="flex-1 overflow-y-auto p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
           {filteredItems.map(item => {
@@ -126,6 +150,7 @@ export const BlackMarketModal: React.FC<BlackMarketModalProps> = ({
                 canAfford={balance >= item.price}
                 onBuy={onBuy}
                 onEquip={onEquip}
+                onBuyAndEquip={onBuyAndEquip ? handleBuyAndEquip : undefined}
               />
             );
           })}

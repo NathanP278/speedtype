@@ -11,6 +11,7 @@ interface MarketItemCardProps {
   canAfford: boolean;
   onBuy: (item: MarketItem) => void;
   onEquip: (category: CosmeticCategory, id: string) => void;
+  onBuyAndEquip?: (item: MarketItem) => boolean;
 }
 
 export const MarketItemCard: React.FC<MarketItemCardProps> = ({
@@ -20,6 +21,7 @@ export const MarketItemCard: React.FC<MarketItemCardProps> = ({
   canAfford,
   onBuy,
   onEquip,
+  onBuyAndEquip,
 }) => {
   const handleTestSound = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -104,7 +106,13 @@ export const MarketItemCard: React.FC<MarketItemCardProps> = ({
             <button
               type="button"
               disabled={!canAfford}
-              onClick={() => onBuy(item)}
+              onClick={() => {
+                if (onBuyAndEquip) {
+                  onBuyAndEquip(item);
+                } else {
+                  onBuy(item);
+                }
+              }}
               className={`px-3 py-1 text-xs font-mono font-bold rounded border transition-colors ${
                 canAfford
                   ? 'border-amber-400 text-amber-400 hover:bg-amber-400 hover:text-black'
