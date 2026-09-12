@@ -75,6 +75,7 @@ export function useEconomy() {
     equipped: economy.equipped,
     awardKp,
     buyItem,
+    buyAndEquipItem: buyItem,
     equipItem,
   };
 }

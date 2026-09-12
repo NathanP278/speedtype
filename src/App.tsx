@@ -118,6 +118,11 @@ export function App() {
           undefined
         )
       );
+
+      const freshLastRun = getLastRun();
+      setLastPlayerGhost(freshLastRun);
+      const freshPb = getPersonalBest();
+      setPersonalBestGhost(freshPb);
     },
     [duel.rivalStats.name, economy, auth.user, difficulty, duel.playerStats.accuracy]
   );
@@ -133,6 +138,17 @@ export function App() {
     },
     [duel]
   );
+
+  const onOpenChallengeFromDuel = useCallback(() => {
+    // Record the result before leaving so ghost is updated in dossier, kp, and leaderboard.
+    if (duel.duelResult) {
+      handleDuelResultRecorded(duel.duelResult.winner === 'player', duel.duelResult.playerWpm);
+    }
+    const freshLastRun = getLastRun();
+    setLastPlayerGhost(freshLastRun);
+    duel.resetDuel();
+    setChallengeOpen(true);
+  }, [duel, handleDuelResultRecorded]);
 
   // ── Authentication & Onboarding Gate ──────────────────────────────────────
   if (!auth.user || !auth.user.onboardingComplete) {
@@ -222,6 +238,8 @@ export function App() {
           duel.resetDuel();
         }}
         onRetest={() => setIsCalibrating(true)}
+        onOpenChallenge={onOpenChallengeFromDuel}
+        onOpenLeaderboard={() => setLeaderboardOpen(true)}
       />
 
       {/* Clean Menu Modal (Extras & Archives) */}
