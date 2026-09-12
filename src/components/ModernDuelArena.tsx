@@ -94,11 +94,11 @@ export const ModernDuelArena: React.FC<ModernDuelArenaProps> = ({
 
       {/* ── Section 1: Unified Race Strip (Slimmed when keyboard active) ──── */}
       <div
-        className={`w-full bg-zinc-950/80 border border-zinc-800/80 rounded-2xl shadow-xl transition-all duration-150 ${
-          isKeyboardActive ? 'p-1.5 sm:p-2 mb-1' : 'p-3 sm:p-5'
+        className={`w-full bg-zinc-950/80 border border-zinc-800/80 rounded-2xl shadow-xl transition-all duration-200 ${
+          isKeyboardActive ? 'p-2 mb-2 border-zinc-800/40 bg-zinc-950/60' : 'p-3 sm:p-5 mb-2'
         }`}
       >
-        <div className="flex items-center justify-between text-xs mb-1 sm:mb-2">
+        <div className="flex items-center justify-between text-xs mb-1.5">
           {/* Player Lead Info */}
           <div className="flex items-center gap-1.5 sm:gap-2">
             <span className="font-extrabold text-[var(--theme-text)] text-xs">YOU</span>
@@ -129,7 +129,7 @@ export const ModernDuelArena: React.FC<ModernDuelArenaProps> = ({
 
         {/* Unified Race Track */}
         <div
-          className={`relative w-full bg-zinc-900/90 rounded-full overflow-hidden border border-zinc-800 transition-all ${
+          className={`relative w-full bg-zinc-900/90 rounded-full overflow-hidden border border-zinc-800/80 transition-all ${
             isKeyboardActive ? 'h-2' : 'h-3 sm:h-3.5'
           }`}
         >
@@ -148,12 +148,8 @@ export const ModernDuelArena: React.FC<ModernDuelArenaProps> = ({
         </div>
       </div>
 
-      {/* ── Section 2: Hero Word Zone (Vertical Center Above Virtual Keyboard) ── */}
-      <div
-        className={`relative w-full flex-1 flex flex-col items-center justify-center my-auto transition-all duration-150 ${
-          isKeyboardActive ? 'min-h-[110px] max-h-[160px]' : 'min-h-[180px] sm:min-h-[260px]'
-        }`}
-      >
+      {/* ── Section 2: Hero Word Zone (Natural Breathing Room & Fluid Typography) ── */}
+      <div className="relative w-full flex-1 flex flex-col items-center justify-center my-auto transition-all duration-200 py-3 sm:py-8 select-none">
         {/* Pre-game "Waiting to Start" Overlay */}
         {!gameStarted && (
           <div className="absolute top-1 sm:top-4 flex items-center gap-2 px-3 py-1 bg-zinc-900/90 border border-zinc-800 rounded-full text-xs text-zinc-300 shadow-lg animate-pulse z-20">
@@ -168,7 +164,7 @@ export const ModernDuelArena: React.FC<ModernDuelArenaProps> = ({
         <div
           className={`font-mono tracking-widest font-black text-center select-none transition-all duration-150 break-keep px-2 ${
             isKeyboardActive
-              ? 'text-3xl sm:text-5xl md:text-6xl my-auto'
+              ? 'text-4xl sm:text-6xl md:text-7xl'
               : 'text-4xl sm:text-6xl md:text-7xl lg:text-8xl'
           } ${!gameStarted ? 'opacity-50' : 'opacity-100'}`}
         >
@@ -194,43 +190,38 @@ export const ModernDuelArena: React.FC<ModernDuelArenaProps> = ({
           })}
         </div>
 
-        {/* Upcoming Words Ribbon */}
+        {/* Upcoming Words Ribbon — Clean & Subtle */}
         {upcomingWords.length > 0 && (
           <div
-            className={`flex items-center gap-1.5 sm:gap-3 text-xs sm:text-sm md:text-base font-mono text-zinc-600 select-none overflow-hidden max-w-xl justify-center px-2 flex-wrap ${
-              isKeyboardActive ? 'mt-2' : 'mt-4 sm:mt-8'
+            className={`flex items-center justify-center gap-2 sm:gap-3 text-xs sm:text-sm font-mono text-zinc-600 select-none overflow-hidden max-w-xl px-2 flex-wrap transition-all ${
+              isKeyboardActive ? 'mt-3' : 'mt-5 sm:mt-8'
             }`}
           >
-            {upcomingWords.slice(0, isKeyboardActive ? 3 : 4).map((word, idx) => (
-              <span
-                key={idx}
-                className="px-2 sm:px-3 py-0.5 sm:py-1 bg-zinc-950/80 border border-zinc-800/80 rounded-lg text-zinc-500 font-medium tracking-wide text-[10px] sm:text-xs"
-              >
-                {word}
-              </span>
-            ))}
+            {isKeyboardActive ? (
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-zinc-600 uppercase font-semibold">NEXT:</span>
+                {upcomingWords.slice(0, 2).map((word, idx) => (
+                  <span
+                    key={idx}
+                    className="px-2 py-0.5 bg-zinc-950/60 border border-zinc-800/60 rounded-md text-zinc-400 font-medium tracking-wide text-xs"
+                  >
+                    {word}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              upcomingWords.slice(0, 4).map((word, idx) => (
+                <span
+                  key={idx}
+                  className="px-2.5 sm:px-3 py-1 bg-zinc-950/80 border border-zinc-800/80 rounded-lg text-zinc-400 font-medium tracking-wide text-xs sm:text-sm"
+                >
+                  {word}
+                </span>
+              ))
+            )}
           </div>
         )}
       </div>
-
-      {/* ── Section 2.5: Anchored Mobile Typing Focus Bar (Anti-Occlusion) ── */}
-      {isKeyboardActive && (
-        <div className="w-full max-w-md mx-auto mb-1 px-3 py-1.5 bg-zinc-950/95 border border-[var(--theme-border)] rounded-xl shadow-2xl flex items-center justify-between text-xs z-30 animate-fadeIn">
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] text-zinc-500 uppercase font-bold">ACTIVE:</span>
-            <span className="font-bold text-white text-sm tracking-wider">
-              <span className="text-[var(--theme-text)]">{currentWordText.slice(0, typedIndex)}</span>
-              <span className="text-white underline decoration-[var(--theme-text)] underline-offset-2">
-                {currentWordText[typedIndex] || ''}
-              </span>
-              <span className="text-zinc-500">{currentWordText.slice(typedIndex + 1)}</span>
-            </span>
-          </div>
-          <span className="text-[10px] text-zinc-500 font-semibold truncate max-w-[120px]">
-            NEXT: {upcomingWords[0] || 'END'}
-          </span>
-        </div>
-      )}
 
       {/* ── Section 3: Ambient Stats Bar ────────────────────────────── */}
       <div

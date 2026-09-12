@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { soundEngine } from '../audio/soundEngine.ts';
+import { useDeviceProfile } from '../engine/useDeviceProfile.ts';
 
 interface VirtualKeyboardDockProps {
   onCharInput: (char: string) => void;
@@ -21,6 +22,7 @@ export const VirtualKeyboardDock: React.FC<VirtualKeyboardDockProps> = ({
   onToggle,
 }) => {
   const [activeKey, setActiveKey] = useState<string | null>(null);
+  const device = useDeviceProfile();
 
   const handleKeyPress = (char: string, e: React.MouseEvent | React.TouchEvent) => {
     e.preventDefault();
@@ -54,6 +56,11 @@ export const VirtualKeyboardDock: React.FC<VirtualKeyboardDockProps> = ({
   };
 
   if (!isOpen) {
+    // If native software keyboard is active, suppress floating toggle to prevent occlusion
+    if (device.isKeyboardOpen) {
+      return null;
+    }
+
     return (
       <div className="fixed bottom-4 right-4 z-40">
         <button

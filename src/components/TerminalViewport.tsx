@@ -111,92 +111,94 @@ export const TerminalViewport: React.FC<TerminalViewportProps> = ({
           )}
         </div>
 
-        {/* Center: Device Badge + Player identity + Calibration Badge */}
-        <div className="flex items-center gap-1.5 sm:gap-3 relative" ref={popoverRef}>
-          {/* Anti-Spoof Hardware Device Badge */}
-          <DeviceBadge device={device} />
+        {/* Center: Device Badge + Player identity + Calibration Badge (hidden when virtual keyboard active) */}
+        {!isKeyboardOpen && (
+          <div className="flex items-center gap-1.5 sm:gap-3 relative" ref={popoverRef}>
+            {/* Anti-Spoof Hardware Device Badge */}
+            <DeviceBadge device={device} />
 
-          {displayUsername && (
-            <button
-              type="button"
-              onClick={() => setAccountPopoverOpen((prev) => !prev)}
-              className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-600 rounded-full text-xs shadow-inner cursor-pointer transition-colors focus-ring"
-              title="Click for account details & sign out"
-            >
-              <span className="text-sm sm:text-base leading-none">{displayAvatar}</span>
-              <span className="hidden xs:inline font-bold text-white tracking-wide truncate max-w-[90px] sm:max-w-[130px]">
-                {currentUser?.displayName || displayUsername}
-              </span>
-              <span className="text-[9px] px-1 bg-blue-950/80 text-blue-400 border border-blue-800/80 rounded font-bold">
-                G
-              </span>
-            </button>
-          )}
-
-          {/* Account Popover Menu */}
-          {accountPopoverOpen && (
-            <div className="absolute top-11 left-0 sm:left-auto sm:right-0 w-72 sm:w-80 bg-zinc-950 border border-zinc-800 rounded-2xl p-4 shadow-2xl z-50 text-left animate-fadeIn">
-              <div className="flex items-center gap-3 border-b border-zinc-800 pb-3 mb-3">
-                <span className="text-3xl p-1 bg-zinc-900 rounded-xl border border-zinc-800">
-                  {displayAvatar}
+            {displayUsername && (
+              <button
+                type="button"
+                onClick={() => setAccountPopoverOpen((prev) => !prev)}
+                className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-600 rounded-full text-xs shadow-inner cursor-pointer transition-colors focus-ring"
+                title="Click for account details & sign out"
+              >
+                <span className="text-sm sm:text-base leading-none">{displayAvatar}</span>
+                <span className="hidden xs:inline font-bold text-white tracking-wide truncate max-w-[90px] sm:max-w-[130px]">
+                  {currentUser?.displayName || displayUsername}
                 </span>
-                <div className="truncate">
-                  <p className="font-black text-white text-sm truncate">
-                    {currentUser?.displayName || displayUsername}
-                  </p>
-                  <p className="text-[10px] text-[var(--theme-text)] font-bold truncate">
-                    {currentUser?.callSign || 'PILOT'} // @{displayUsername}
-                  </p>
-                  <p className="text-[10px] text-zinc-500 truncate mt-0.5">
-                    {currentUser?.email || 'authenticated_pilot'}
-                  </p>
-                </div>
-              </div>
+                <span className="text-[9px] px-1 bg-blue-950/80 text-blue-400 border border-blue-800/80 rounded font-bold">
+                  G
+                </span>
+              </button>
+            )}
 
-              <div className="text-[10px] text-zinc-400 space-y-1.5 mb-4 bg-zinc-900/60 p-2.5 rounded-xl border border-zinc-850">
-                <div className="flex justify-between">
-                  <span className="text-zinc-500">AUTH PROVIDER:</span>
-                  <span className="text-blue-400 font-bold">GOOGLE OAUTH</span>
-                </div>
-                {currentUser?.telemetry?.referralSource && (
-                  <div className="flex justify-between">
-                    <span className="text-zinc-500">DISCOVERY:</span>
-                    <span className="text-zinc-300 font-bold uppercase">
-                      {currentUser.telemetry.referralSource.replace('_', ' ')}
-                    </span>
+            {/* Account Popover Menu */}
+            {accountPopoverOpen && (
+              <div className="absolute top-11 left-0 sm:left-auto sm:right-0 w-72 sm:w-80 bg-zinc-950 border border-zinc-800 rounded-2xl p-4 shadow-2xl z-50 text-left animate-fadeIn">
+                <div className="flex items-center gap-3 border-b border-zinc-800 pb-3 mb-3">
+                  <span className="text-3xl p-1 bg-zinc-900 rounded-xl border border-zinc-800">
+                    {displayAvatar}
+                  </span>
+                  <div className="truncate">
+                    <p className="font-black text-white text-sm truncate">
+                      {currentUser?.displayName || displayUsername}
+                    </p>
+                    <p className="text-[10px] text-[var(--theme-text)] font-bold truncate">
+                      {currentUser?.callSign || 'PILOT'} // @{displayUsername}
+                    </p>
+                    <p className="text-[10px] text-zinc-500 truncate mt-0.5">
+                      {currentUser?.email || 'authenticated_pilot'}
+                    </p>
                   </div>
-                )}
-                {currentUser?.telemetry?.typingExperience && (
-                  <div className="flex justify-between">
-                    <span className="text-zinc-500">EXPERIENCE:</span>
-                    <span className="text-zinc-300 font-bold uppercase">
-                      {currentUser.telemetry.typingExperience}
-                    </span>
-                  </div>
-                )}
-                <div className="flex justify-between">
-                  <span className="text-zinc-500">STATUS:</span>
-                  <span className="text-emerald-400 font-bold">VERIFIED FIGHTER</span>
                 </div>
+
+                <div className="text-[10px] text-zinc-400 space-y-1.5 mb-4 bg-zinc-900/60 p-2.5 rounded-xl border border-zinc-850">
+                  <div className="flex justify-between">
+                    <span className="text-zinc-500">AUTH PROVIDER:</span>
+                    <span className="text-blue-400 font-bold">GOOGLE OAUTH</span>
+                  </div>
+                  {currentUser?.telemetry?.referralSource && (
+                    <div className="flex justify-between">
+                      <span className="text-zinc-500">DISCOVERY:</span>
+                      <span className="text-zinc-300 font-bold uppercase">
+                        {currentUser.telemetry.referralSource.replace('_', ' ')}
+                      </span>
+                    </div>
+                  )}
+                  {currentUser?.telemetry?.typingExperience && (
+                    <div className="flex justify-between">
+                      <span className="text-zinc-500">EXPERIENCE:</span>
+                      <span className="text-zinc-300 font-bold uppercase">
+                        {currentUser.telemetry.typingExperience}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex justify-between">
+                    <span className="text-zinc-500">STATUS:</span>
+                    <span className="text-emerald-400 font-bold">VERIFIED FIGHTER</span>
+                  </div>
+                </div>
+
+                {onSignOut && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAccountPopoverOpen(false);
+                      onSignOut();
+                    }}
+                    className="w-full py-2 bg-red-950/40 hover:bg-red-900/60 border border-red-800/60 text-red-300 font-bold text-xs rounded-xl transition-colors focus-ring cursor-pointer"
+                  >
+                    [SIGN OUT]
+                  </button>
+                )}
               </div>
+            )}
 
-              {onSignOut && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAccountPopoverOpen(false);
-                    onSignOut();
-                  }}
-                  className="w-full py-2 bg-red-950/40 hover:bg-red-900/60 border border-red-800/60 text-red-300 font-bold text-xs rounded-xl transition-colors focus-ring cursor-pointer"
-                >
-                  [SIGN OUT]
-                </button>
-              )}
-            </div>
-          )}
-
-          {!isKeyboardOpen && calibrationBadge}
-        </div>
+            {calibrationBadge}
+          </div>
+        )}
 
         {/* Right: Clean Controls */}
         <div className="flex items-center gap-1.5 sm:gap-3">
