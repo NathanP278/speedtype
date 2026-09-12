@@ -79,25 +79,25 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         }}
       />
 
-      <div className="relative z-10 w-full max-w-xl bg-zinc-950 border border-zinc-800/90 rounded-2xl p-6 sm:p-8 shadow-[0_0_50px_rgba(0,0,0,0.8)] flex flex-col items-center text-center">
+      <div className="relative z-10 w-full max-w-xl max-h-[92dvh] overflow-y-auto bg-zinc-950 border border-zinc-800/90 rounded-2xl p-4 sm:p-6 md:p-8 shadow-[0_0_50px_rgba(0,0,0,0.8)] flex flex-col items-center text-center">
         {activeError && (
-          <div className="w-full mb-6 p-3 bg-red-950/40 border border-red-500/50 rounded-xl text-xs text-red-400 text-center animate-shake">
+          <div className="w-full mb-4 sm:mb-6 p-3 bg-red-950/40 border border-red-500/50 rounded-xl text-xs text-red-400 text-center animate-shake">
             {activeError}
           </div>
         )}
 
         {!currentUser ? (
           /* STATE A: Minimalist Homepage Landing */
-          <div className="flex flex-col items-center w-full py-8">
-            <div className="text-6xl mb-6 animate-pulse drop-shadow-[0_0_15px_rgba(255,255,255,0.8)]">
+          <div className="flex flex-col items-center w-full py-4 sm:py-8">
+            <div className="text-4xl sm:text-6xl mb-4 sm:mb-6 animate-pulse drop-shadow-[0_0_15px_rgba(255,255,255,0.8)]">
               ⚡
             </div>
 
-            <h1 className="text-6xl sm:text-7xl font-black tracking-widest text-white drop-shadow-[0_0_20px_rgba(255,255,255,0.2)] mb-2">
+            <h1 className="text-4xl sm:text-6xl md:text-7xl font-black tracking-widest text-white drop-shadow-[0_0_20px_rgba(255,255,255,0.2)] mb-2">
               SPEEDTYPE
             </h1>
 
-            <p className="text-sm text-zinc-400 mt-2 mb-10 tracking-widest uppercase">
+            <p className="text-xs sm:text-sm text-zinc-400 mt-2 mb-6 sm:mb-10 tracking-widest uppercase">
               Zero-latency cyber combat typing engine.
             </p>
 

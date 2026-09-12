@@ -25,6 +25,9 @@ import { registerTier3CrossFeatureTests } from './e2e/tier3-cross-feature/tier3-
 // Tier 4: Real-World Application Scenarios (5 scenarios)
 import { registerTier4ScenarioTests } from './e2e/tier4-scenarios/tier4-real-world-scenarios.ts';
 
+// Phase 15: Device Detection & Anti-Spoofing Tests
+import { registerDeviceDetectionTests } from './deviceDetection.test.ts';
+
 async function main(): Promise<void> {
   console.log('================================================================');
   console.log('⚡ SPEEDTYPE COMPREHENSIVE AUTOMATED TEST SUITE (TIERS 1 - 4) ⚡');
@@ -48,6 +51,9 @@ async function main(): Promise<void> {
 
   // Tier 4 (5 tests)
   registerTier4ScenarioTests();
+
+  // Phase 15: Device Detection Tests
+  registerDeviceDetectionTests();
 
   console.log('Executing test harness...\n');
   const summary = await runAllRegisteredSuites(true);

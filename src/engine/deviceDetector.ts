@@ -90,11 +90,24 @@ export function probePointerCapabilities(): { pointerType: PointerType; hoverSup
   return { pointerType, hoverSupported, touchPoints };
 }
 
+export interface DetectionOverrides {
+  userAgent?: string;
+  platform?: string;
+  maxTouchPoints?: number;
+  pointerType?: PointerType;
+  hoverSupported?: boolean;
+  gpuVendor?: string;
+  gpuRenderer?: string;
+  screenWidth?: number;
+  screenHeight?: number;
+  pixelRatio?: number;
+}
+
 /**
  * Perform multi-dimensional hardware probing and anti-spoof analysis.
  */
-export function detectDeviceProfile(): DeviceProfile {
-  if (typeof window === 'undefined') {
+export function detectDeviceProfile(overrides?: DetectionOverrides): DeviceProfile {
+  if (typeof window === 'undefined' && !overrides) {
     return {
       category: 'desktop',
       os: 'unknown',
@@ -114,15 +127,39 @@ export function detectDeviceProfile(): DeviceProfile {
     };
   }
 
-  const ua = (navigator.userAgent || '').toLowerCase();
-  const platform = ((navigator as unknown as { userAgentData?: { platform?: string } }).userAgentData?.platform || navigator.platform || '').toLowerCase();
-  const gpu = probeGpuHardware();
-  const pointer = probePointerCapabilities();
+  const rawUa = overrides?.userAgent ?? (typeof navigator !== 'undefined' ? navigator.userAgent : '') ?? '';
+  const ua = rawUa.toLowerCase();
 
-  const screenWidth = window.screen?.width || window.innerWidth || 1024;
-  const screenHeight = window.screen?.height || window.innerHeight || 768;
-  const pixelRatio = window.devicePixelRatio || 1;
-  const isTouchDevice = pointer.touchPoints > 0 || pointer.pointerType === 'coarse' || 'ontouchstart' in window;
+  const rawPlatform =
+    overrides?.platform ??
+    (typeof navigator !== 'undefined'
+      ? (navigator as unknown as { userAgentData?: { platform?: string } }).userAgentData?.platform ||
+        navigator.platform ||
+        ''
+      : '');
+  const platform = rawPlatform.toLowerCase();
+
+  const naturalGpu = probeGpuHardware();
+  const gpu = {
+    vendor: overrides?.gpuVendor ?? naturalGpu.vendor,
+    renderer: overrides?.gpuRenderer ?? naturalGpu.renderer,
+  };
+
+  const naturalPointer = probePointerCapabilities();
+  const touchPoints = overrides?.maxTouchPoints !== undefined ? overrides.maxTouchPoints : naturalPointer.touchPoints;
+  const pointerType = overrides?.pointerType !== undefined ? overrides.pointerType : naturalPointer.pointerType;
+  const hoverSupported = overrides?.hoverSupported !== undefined ? overrides.hoverSupported : naturalPointer.hoverSupported;
+
+  const screenWidth =
+    overrides?.screenWidth ??
+    (typeof window !== 'undefined' ? window.screen?.width || window.innerWidth || 1024 : 1024);
+  const screenHeight =
+    overrides?.screenHeight ??
+    (typeof window !== 'undefined' ? window.screen?.height || window.innerHeight || 768 : 768);
+  const pixelRatio =
+    overrides?.pixelRatio ?? (typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1);
+  const isTouchDevice =
+    touchPoints > 0 || pointerType === 'coarse' || (typeof window !== 'undefined' && 'ontouchstart' in window);
 
   const spoofReasons: string[] = [];
   let os: DeviceOS = 'unknown';
@@ -152,7 +189,7 @@ export function detectDeviceProfile(): DeviceProfile {
   // Safari on iPadOS 13+ sends: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) ..." with platform "MacIntel"
   // Real Macs have touchPoints === 0, while iPads have touchPoints >= 2.
   const isClaimedMac = ua.includes('macintosh') || platform.includes('mac');
-  const isIPad = isClaimedMac && pointer.touchPoints > 1;
+  const isIPad = isClaimedMac && touchPoints > 1;
 
   if (isIPad) {
     category = 'tablet';
@@ -171,7 +208,7 @@ export function detectDeviceProfile(): DeviceProfile {
       confidence -= 40;
     }
     // Claims iPhone, but maxTouchPoints is 0 and pointer is fine mouse
-    if (pointer.touchPoints === 0 && pointer.pointerType === 'fine') {
+    if (touchPoints === 0 && pointerType === 'fine') {
       spoofReasons.push('Claimed mobile iPhone, but no touch hardware points detected (mouse pointer active)');
       confidence -= 30;
     }
@@ -195,17 +232,17 @@ export function detectDeviceProfile(): DeviceProfile {
     os = 'macos';
     category = 'desktop';
     formFactor = 'Apple Mac Desktop / MacBook';
-    if (pointer.touchPoints > 0 && !isIPad) {
+    if (touchPoints > 0 && !isIPad) {
       category = 'hybrid';
       formFactor = 'Mac Hybrid';
     }
   } else if (ua.includes('windows') || platform.includes('win')) {
     os = 'windows';
-    category = pointer.touchPoints > 0 && pointer.pointerType === 'coarse' ? 'tablet' : 'desktop';
-    formFactor = pointer.touchPoints > 0 ? 'Windows Touch / 2-in-1' : 'Windows PC / Workstation';
+    category = touchPoints > 0 && pointerType === 'coarse' ? 'tablet' : 'desktop';
+    formFactor = touchPoints > 0 ? 'Windows Touch / 2-in-1' : 'Windows PC / Workstation';
   } else if (ua.includes('cros')) {
     os = 'cros';
-    category = pointer.touchPoints > 0 ? 'tablet' : 'desktop';
+    category = touchPoints > 0 ? 'tablet' : 'desktop';
     formFactor = 'Chromebook';
   } else if (ua.includes('linux')) {
     os = 'linux';
@@ -216,14 +253,14 @@ export function detectDeviceProfile(): DeviceProfile {
   // ── 2. Viewport & Emulation Anti-Spoof Detection ───────────────────────────
   // A desktop browser emulating mobile in DevTools often sets mobile UA, but screen resolution
   // or window properties retain desktop traits.
-  if (category === 'desktop' && pointer.touchPoints > 0 && pointer.pointerType === 'coarse' && !pointer.hoverSupported) {
+  if (category === 'desktop' && touchPoints > 0 && pointerType === 'coarse' && !hoverSupported) {
     // Desktop UA claimed, but device is purely coarse touch without hover
     category = screenWidth < 600 ? 'mobile' : 'tablet';
     spoofReasons.push('Desktop User-Agent detected, but physical input is purely coarse touch without hover');
     confidence -= 25;
   }
 
-  if ((category === 'mobile' || category === 'tablet') && isMobileGpu && pointer.touchPoints > 0) {
+  if ((category === 'mobile' || category === 'tablet') && isMobileGpu && touchPoints > 0) {
     confidence = Math.min(100, confidence + 10);
   }
 
@@ -235,9 +272,9 @@ export function detectDeviceProfile(): DeviceProfile {
     formFactor,
     gpuVendor: gpu.vendor,
     gpuRenderer: gpu.renderer,
-    touchPoints: pointer.touchPoints,
-    pointerType: pointer.pointerType,
-    hoverSupported: pointer.hoverSupported,
+    touchPoints,
+    pointerType,
+    hoverSupported,
     isTouchDevice,
     isSpoofed,
     spoofReasons,

@@ -52,8 +52,8 @@ export const ModernResultModal: React.FC<ModernResultModalProps> = ({
   const diffConfig = RIVAL_DIFFICULTIES[result.difficulty] || RIVAL_DIFFICULTIES.equal;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md font-mono select-none animate-fadeIn">
-      <div className="relative w-full max-w-lg bg-zinc-950 border border-zinc-800 rounded-2xl p-6 sm:p-8 shadow-2xl text-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md font-mono select-none animate-fadeIn">
+      <div className="relative w-full max-w-lg max-h-[90dvh] overflow-y-auto bg-zinc-950 border border-zinc-800 rounded-2xl p-4 sm:p-6 md:p-8 shadow-2xl text-center">
         {/* Outcome Header */}
         <div className="mb-4">
           <span
