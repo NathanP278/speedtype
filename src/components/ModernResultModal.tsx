@@ -19,6 +19,8 @@ interface ModernResultModalProps {
   onRematch: () => void;
   onSelectDifficulty: (diff: RivalDifficultyLevel) => void;
   onRetest: () => void;
+  onOpenChallenge?: () => void;
+  onOpenLeaderboard?: () => void;
 }
 
 export const ModernResultModal: React.FC<ModernResultModalProps> = ({
@@ -26,6 +28,8 @@ export const ModernResultModal: React.FC<ModernResultModalProps> = ({
   onRematch,
   onSelectDifficulty,
   onRetest,
+  onOpenChallenge,
+  onOpenLeaderboard,
 }) => {
   // Listen for Enter key to trigger instant rematch
   useEffect(() => {
@@ -148,7 +152,7 @@ export const ModernResultModal: React.FC<ModernResultModalProps> = ({
         </div>
 
         {/* Primary Action Buttons */}
-        <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
+        <div className="flex flex-col sm:flex-row gap-3 justify-center items-center mb-4">
           <button
             type="button"
             onClick={onRematch}
@@ -167,6 +171,28 @@ export const ModernResultModal: React.FC<ModernResultModalProps> = ({
           >
             [RETEST SPEED]
           </button>
+        </div>
+
+        {/* Secondary Action Buttons */}
+        <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
+          {onOpenChallenge && (
+            <button
+              type="button"
+              onClick={onOpenChallenge}
+              className="w-full sm:w-auto px-4 py-2 border border-purple-500/30 hover:border-purple-500 bg-purple-950/20 text-purple-300 hover:text-white text-xs rounded-xl transition-colors focus-ring"
+            >
+              [⚔️ CHALLENGE FRIEND]
+            </button>
+          )}
+          {onOpenLeaderboard && (
+            <button
+              type="button"
+              onClick={onOpenLeaderboard}
+              className="w-full sm:w-auto px-4 py-2 border border-blue-500/30 hover:border-blue-500 bg-blue-950/20 text-blue-300 hover:text-white text-xs rounded-xl transition-colors focus-ring"
+            >
+              [📊 HALL OF FIGHTERS]
+            </button>
+          )}
         </div>
       </div>
     </div>
