@@ -42,6 +42,12 @@ The stack employs Vite + React + TypeScript + Tailwind CSS + HTML5 Canvas + Web 
 - **Plan 14.2 (Wave 2)**: Google OAuth Popup Handshake & Account Selection (skipBrowserRedirect, centered popup, prompt: 'select_account', cross-window sync).
 - **Plan 14.3 (Wave 3)**: Post-Authentication Pilot Handle & Avatar Setup Gate (verified Google gate, prompt handle/avatar only after authentication, Supabase persistence).
 
+### Phase 15: Universal Device Adaptation & Cross-Platform Engine
+- **Plan 15.1 (Wave 1)**: Anti-Spoof Hardware & Device Probing Engine (WebGL GPU, touch points, pointer queries, iPadOS unmasking, DeviceBadge & telemetry popover).
+- **Plan 15.2 (Wave 2)**: Universal Adaptive Input Engine & Virtual Keyboard Architecture (AdaptiveInputCapture, VirtualKeyboardDock, physical vs mobile IME normalization).
+- **Plan 15.3 (Wave 3)**: VisualViewport Dynamics, Safe Areas & Fluid Responsive Arena Layout (visualViewport height sync, responsive hero word scaling, safe-area insets).
+- **Plan 15.4 (Wave 4)**: Cross-Device Modal Adaptations & Automated Verification Suite (mobile modal touch ergonomics, device detection unit tests, zero regression validation).
+
 ---
 
 ## Phase Dependencies
@@ -54,6 +60,7 @@ flowchart TD
     P4 --> P5["Phase 5: UX Simplification & Visual Calm"]
     P5 --> P13["Phase 13: Live Sync, Combat Math & Auth Hardening"]
     P13 --> P14["Phase 14: Google Auth Exclusive & Offline Mode Elimination"]
+    P14 --> P15["Phase 15: Universal Device Adaptation & Cross-Platform Engine"]
 ```
 
 

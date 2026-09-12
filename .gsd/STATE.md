@@ -1,13 +1,16 @@
 # SPEEDTYPE PROJECT STATE
 
 ## Current Position
-- **Active Phase**: Phase 6–10 Feature Overhaul & Modernization
-- **Status**: COMPLETE & VERIFIED
+- **Active Phase**: Phase 15: Universal Device Adaptation & Cross-Platform Engine
+- **Status**: PLANNED (Wave 1-4 Plans Created)
 
 ## Architectural Directives
 - **Zero Framework Bloat**: Pure Vite + React 19 + TypeScript + Tailwind CSS.
 - **Zero Asset Latency**: Procedural Web Audio API sound synthesis (no external audio files).
 - **Subpixel Terminal Rendering**: Hardware-accelerated Canvas 2D for particle debris and CRT scanline styling.
+- **Hardware-Level Device Probing**: Anti-spoof fingerprinting via WebGL GPU unmasking, touch points, pointer queries, and High-Entropy Client Hints.
+- **Universal Adaptive Input**: Seamless input across native mobile virtual keyboards (iOS QuickType, Android Gboard/IME), external physical keyboards (Bluetooth/USB), and cybernetic on-screen touch dock.
+- **VisualViewport Fluid Layout**: CSS clamp typography and dynamic window.visualViewport height binding to prevent keyboard occlusion and layout shift.
 - **Sub-Millisecond Input**: Global `keydown` handling bypassing HTML input focus traps.
 - **Client-Side Security**: In-memory token bucket rate limiting on KP awards, leaderboard submissions, profile saves, and challenge decoding.
 
