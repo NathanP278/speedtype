@@ -111,9 +111,9 @@ export const TerminalViewport: React.FC<TerminalViewportProps> = ({
           )}
         </div>
 
-        {/* Center: Device Badge + Player identity + Calibration Badge (hidden when virtual keyboard active) */}
+        {/* Center: Device Badge + Player identity + Calibration Badge (desktop & tablet only) */}
         {!isKeyboardOpen && (
-          <div className="flex items-center gap-1.5 sm:gap-3 relative" ref={popoverRef}>
+          <div className="hidden sm:flex items-center gap-1.5 sm:gap-3 relative" ref={popoverRef}>
             {/* Anti-Spoof Hardware Device Badge */}
             <DeviceBadge device={device} />
 
@@ -215,10 +215,10 @@ export const TerminalViewport: React.FC<TerminalViewportProps> = ({
             <button
               type="button"
               onClick={handleNextPalette}
-              className="px-2 sm:px-2.5 py-1 border border-zinc-800 hover:border-[var(--theme-text)] rounded-lg text-xs text-zinc-300 hover:text-[var(--theme-text)] transition-colors uppercase focus-ring"
+              className="hidden sm:inline-flex items-center px-2 sm:px-2.5 py-1 border border-zinc-800 hover:border-[var(--theme-text)] rounded-lg text-xs text-zinc-300 hover:text-[var(--theme-text)] transition-colors uppercase focus-ring"
               title="Cycle theme palette"
             >
-              🎨 <span className="hidden sm:inline">{currentPaletteId}</span>
+              🎨 <span className="hidden md:inline ml-1">{currentPaletteId}</span>
             </button>
           )}
 

@@ -56,8 +56,8 @@ export const VirtualKeyboardDock: React.FC<VirtualKeyboardDockProps> = ({
   };
 
   if (!isOpen) {
-    // If native software keyboard is active, suppress floating toggle to prevent occlusion
-    if (device.isKeyboardOpen) {
+    // Suppress floating toggle on mobile devices or when native keyboard is active
+    if (device.isMobile || device.isKeyboardOpen) {
       return null;
     }
 

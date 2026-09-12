@@ -163,17 +163,17 @@ export const ModernDuelArena: React.FC<ModernDuelArenaProps> = ({
 
         {/* Massive Hero Word Display with Responsive Fluid Typography */}
         <div
-          className={`font-mono tracking-widest font-black text-center select-none transition-all duration-150 break-keep px-2 ${
+          className={`font-mono tracking-wider sm:tracking-widest font-black text-center select-none transition-all duration-150 break-keep px-2 ${
             isKeyboardActive
               ? 'text-4xl sm:text-6xl md:text-7xl'
-              : 'text-4xl sm:text-6xl md:text-7xl lg:text-8xl'
+              : 'text-5xl xs:text-6xl sm:text-7xl md:text-8xl'
           } ${!gameStarted ? 'opacity-50' : 'opacity-100'}`}
         >
           {currentWordText.split('').map((char, index) => {
             const isTyped = index < typedIndex;
             const isCurrent = index === typedIndex;
 
-            let charStyle = 'text-zinc-700';
+            let charStyle = 'text-zinc-400 font-bold';
             if (isTyped) {
               charStyle = 'text-[var(--theme-text)] glow-wpm font-black';
             } else if (isCurrent) {
@@ -191,43 +191,72 @@ export const ModernDuelArena: React.FC<ModernDuelArenaProps> = ({
           })}
         </div>
 
-        {/* Upcoming Words Ribbon — Clean & Subtle */}
+        {/* Upcoming Words Ribbon — Flowing Typography Preview */}
         {upcomingWords.length > 0 && (
           <div
-            className={`flex items-center justify-center gap-2 sm:gap-3 text-xs sm:text-sm font-mono text-zinc-600 select-none overflow-hidden max-w-xl px-2 flex-wrap transition-all ${
-              isKeyboardActive ? 'mt-3' : 'mt-5 sm:mt-8'
+            className={`flex items-center justify-center text-xs sm:text-sm font-mono select-none overflow-hidden max-w-xl px-2 transition-all ${
+              isKeyboardActive ? 'mt-2' : 'mt-4 sm:mt-6'
             }`}
           >
-            {isKeyboardActive ? (
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] text-zinc-600 uppercase font-semibold">NEXT:</span>
-                {upcomingWords.slice(0, 2).map((word, idx) => (
-                  <span
-                    key={idx}
-                    className="px-2 py-0.5 bg-zinc-950/60 border border-zinc-800/60 rounded-md text-zinc-400 font-medium tracking-wide text-xs"
-                  >
+            <div className="flex items-center gap-2 text-zinc-400 tracking-wider">
+              {upcomingWords.slice(0, 3).map((word, idx) => (
+                <React.Fragment key={idx}>
+                  {idx > 0 && <span className="text-zinc-700 select-none">·</span>}
+                  <span className={idx === 0 ? 'text-zinc-300 font-semibold' : 'text-zinc-500 font-normal'}>
                     {word}
                   </span>
-                ))}
-              </div>
-            ) : (
-              upcomingWords.slice(0, 4).map((word, idx) => (
-                <span
-                  key={idx}
-                  className="px-2.5 sm:px-3 py-1 bg-zinc-950/80 border border-zinc-800/80 rounded-lg text-zinc-400 font-medium tracking-wide text-xs sm:text-sm"
-                >
-                  {word}
-                </span>
-              ))
-            )}
+                </React.Fragment>
+              ))}
+            </div>
           </div>
         )}
       </div>
 
-      {/* ── Section 3: Ambient Stats Bar ────────────────────────────── */}
+      {/* ── Section 3: Mobile Combat Pulse Bar (Phone Viewports < 640px) ── */}
+      {!isKeyboardActive && (
+        <div className="flex sm:hidden w-full items-center justify-between px-3.5 py-2 bg-zinc-950/85 border border-zinc-800/80 rounded-xl text-xs backdrop-blur-md">
+          <div className="flex items-center gap-2.5">
+            <span className="text-[11px] font-bold text-white">
+              YOU <span className="text-[var(--theme-text)] font-extrabold">{playerStats.wpm}</span>
+            </span>
+            <span className="text-zinc-700 text-[10px]">•</span>
+            <span className="text-[11px] font-bold text-zinc-400">
+              RIVAL <span className="text-rose-400 font-extrabold">{rivalStats.targetWpm}</span>
+            </span>
+            {playerStats.streak > 1 && (
+              <>
+                <span className="text-zinc-700 text-[10px]">•</span>
+                <span className="text-[10px] text-amber-400 font-bold">⚡{playerStats.streak}</span>
+              </>
+            )}
+          </div>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={onResetMatch}
+              className="p-1 px-2 text-zinc-400 hover:text-white border border-zinc-800 hover:border-zinc-600 rounded-lg text-xs leading-none cursor-pointer"
+              title="Restart match"
+              aria-label="Restart match"
+            >
+              ↺
+            </button>
+            <button
+              type="button"
+              onClick={onRetestSpeed}
+              className="p-1 px-2 text-zinc-400 hover:text-white border border-zinc-800 hover:border-zinc-600 rounded-lg text-[10px] leading-none cursor-pointer"
+              title="Recalibrate"
+              aria-label="Recalibrate"
+            >
+              ⚡
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Section 3: Desktop Ambient Stats Bar (Tablet & Desktop >= 640px) ── */}
       <div
-        className={`w-full bg-zinc-950/70 border border-zinc-800/60 rounded-xl px-3 sm:px-5 py-2 sm:py-3 flex flex-col sm:flex-row items-center justify-between text-xs text-zinc-400 gap-2 sm:gap-3 transition-all ${
-          isKeyboardActive ? 'hidden sm:flex py-1.5' : ''
+        className={`hidden sm:flex w-full bg-zinc-950/70 border border-zinc-800/60 rounded-xl px-4 sm:px-5 py-2 sm:py-3 items-center justify-between text-xs text-zinc-400 gap-3 transition-all ${
+          isKeyboardActive ? 'py-1.5' : ''
         }`}
       >
         {/* Left: Player Ambient Stats */}
@@ -262,7 +291,7 @@ export const ModernDuelArena: React.FC<ModernDuelArenaProps> = ({
           <button
             type="button"
             onClick={onResetMatch}
-            className="px-2.5 py-1 text-[11px] border border-zinc-800 hover:border-zinc-600 text-zinc-400 hover:text-white rounded-md transition-colors focus-ring"
+            className="px-2.5 py-1 text-[11px] border border-zinc-800 hover:border-zinc-600 text-zinc-400 hover:text-white rounded-md transition-colors focus-ring cursor-pointer"
             title="Restart current duel"
           >
             Restart
@@ -270,7 +299,7 @@ export const ModernDuelArena: React.FC<ModernDuelArenaProps> = ({
           <button
             type="button"
             onClick={onRetestSpeed}
-            className="px-2.5 py-1 text-[11px] border border-zinc-800 hover:border-zinc-600 text-zinc-400 hover:text-white rounded-md transition-colors focus-ring"
+            className="px-2.5 py-1 text-[11px] border border-zinc-800 hover:border-zinc-600 text-zinc-400 hover:text-white rounded-md transition-colors focus-ring cursor-pointer"
             title="Recalibrate benchmark"
           >
             Recalibrate
