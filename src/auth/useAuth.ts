@@ -84,6 +84,21 @@ export function useAuth() {
       }
     });
 
+    // Listen for cross-window message from OAuth popup
+    const handlePopupMessage = async (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
+      if (event.data?.type === 'SPEEDTYPE_OAUTH_SUCCESS') {
+        if (!isMounted) return;
+        setIsLoading(true);
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          await fetchAndSetProfile(session.user.id, session.user);
+        }
+        setIsLoading(false);
+      }
+    };
+    window.addEventListener('message', handlePopupMessage);
+
     // Listen for auth state transitions (login, logout, oauth callback)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!isMounted) return;
@@ -99,11 +114,12 @@ export function useAuth() {
 
     return () => {
       isMounted = false;
+      window.removeEventListener('message', handlePopupMessage);
       subscription.unsubscribe();
     };
   }, [fetchAndSetProfile]);
 
-  // Exclusive Google OAuth Sign-In
+  // Exclusive Google OAuth Sign-In with Dedicated Popup & Account Selection
   const signInWithGoogle = useCallback(async (): Promise<{ success: boolean; error?: string }> => {
     setError(null);
 
@@ -114,10 +130,15 @@ export function useAuth() {
     }
 
     try {
-      const { error: oauthErr } = await supabase.auth.signInWithOAuth({
+      const { data, error: oauthErr } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: window.location.origin,
+          skipBrowserRedirect: true,
+          queryParams: {
+            prompt: 'select_account',
+            access_type: 'offline',
+          },
         },
       });
 
@@ -126,13 +147,51 @@ export function useAuth() {
         return { success: false, error: oauthErr.message };
       }
 
+      if (!data?.url) {
+        const msg = 'Failed to obtain Google authorization URL';
+        setError(msg);
+        return { success: false, error: msg };
+      }
+
+      // Open centered popup window
+      const width = 520;
+      const height = 650;
+      const left = Math.max(0, Math.round(window.screenX + (window.outerWidth - width) / 2));
+      const top = Math.max(0, Math.round(window.screenY + (window.outerHeight - height) / 2));
+
+      const popup = window.open(
+        data.url,
+        'speedtype_google_oauth',
+        `width=${width},height=${height},left=${left},top=${top},status=no,menubar=no,toolbar=no`
+      );
+
+      if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+        // Fallback to direct redirect if browser blocks popups
+        console.warn('[useAuth] Popup blocked by browser. Falling back to direct redirect.');
+        window.location.assign(data.url);
+        return { success: true };
+      }
+
+      popup.focus();
+
+      // Poll popup closure as fallback synchronization
+      const timer = setInterval(async () => {
+        if (!popup || popup.closed) {
+          clearInterval(timer);
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.user) {
+            await fetchAndSetProfile(session.user.id, session.user);
+          }
+        }
+      }, 500);
+
       return { success: true };
     } catch (err: any) {
       const msg = err?.message || 'Failed to initialize Google sign-in';
       setError(msg);
       return { success: false, error: msg };
     }
-  }, []);
+  }, [fetchAndSetProfile]);
 
   // Update profile from onboarding wizard or profile settings
   const updateProfile = useCallback(async (updates: {
