@@ -139,6 +139,8 @@ export async function submitScore(
   localList.sort((a, b) => b.netWpm - a.netWpm);
   saveLocalRecords(localList);
 
+  window.dispatchEvent(new CustomEvent('speedtype:score-submitted', { detail: localRecord }));
+
   // Submit to Supabase if configured and user is authenticated
   if (isSupabaseConfigured && supabase && user.id && !user.id.startsWith('local-')) {
     try {
@@ -163,4 +165,20 @@ export async function submitScore(
   }
 
   return { success: true };
+}
+
+export function subscribeToLeaderboardLive(callback: () => void): () => void {
+  const handler = () => callback();
+  window.addEventListener('speedtype:score-submitted', handler);
+  let channel: any = null;
+  if (isSupabaseConfigured && supabase) {
+    channel = supabase
+      .channel('leaderboard-live')
+      .on('postgres_changes' as any, { event: 'INSERT', schema: 'public', table: 'leaderboard' }, () => callback())
+      .subscribe();
+  }
+  return () => {
+    window.removeEventListener('speedtype:score-submitted', handler);
+    if (channel) supabase.removeChannel(channel);
+  };
 }

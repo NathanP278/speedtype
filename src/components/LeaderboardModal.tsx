@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { fetchLeaderboard, LeaderboardRecord } from '../services/leaderboardService.ts';
+import { fetchLeaderboard, LeaderboardRecord, subscribeToLeaderboardLive } from '../services/leaderboardService.ts';
 
 interface LeaderboardModalProps {
   isOpen: boolean;
@@ -50,6 +50,12 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  useEffect(() => {
+    if (isOpen) {
+      return subscribeToLeaderboardLive(() => loadData());
+    }
+  }, [isOpen, loadData]);
 
   if (!isOpen) return null;
 
