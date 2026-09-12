@@ -31,6 +31,9 @@ import { registerDeviceDetectionTests } from './deviceDetection.test.ts';
 // Phase 16: Mobile Input Engine & Virtual Keyboard Pipeline Tests
 import { registerMobileInputEngineTests } from './mobileInputEngine.test.ts';
 
+// Phase 17: Multi-Device Calibration & Input Hardening Tests
+import { registerMultiDeviceCalibrationTests } from './multiDeviceCalibration.test.ts';
+
 async function main(): Promise<void> {
   console.log('================================================================');
   console.log('⚡ SPEEDTYPE COMPREHENSIVE AUTOMATED TEST SUITE (TIERS 1 - 4) ⚡');
@@ -60,6 +63,9 @@ async function main(): Promise<void> {
 
   // Phase 16: Mobile Input Engine Tests
   registerMobileInputEngineTests();
+
+  // Phase 17: Multi-Device Calibration Tests
+  registerMultiDeviceCalibrationTests();
 
   console.log('Executing test harness...\n');
   const summary = await runAllRegisteredSuites(true);

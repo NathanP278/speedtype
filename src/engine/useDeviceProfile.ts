@@ -62,9 +62,21 @@ export function useDeviceProfile(): UseDeviceProfileResult {
       setVisualViewportHeight(vHeight);
       setKeyboardHeight(kbHeight);
 
+      // Clamp window scroll to (0, 0) to strictly prevent iOS Safari from scrolling header off-screen
+      if (window.scrollY !== 0 || window.scrollX !== 0) {
+        window.scrollTo(0, 0);
+      }
+      if (document.body && document.body.scrollTop !== 0) {
+        document.body.scrollTop = 0;
+      }
+      if (document.documentElement && document.documentElement.scrollTop !== 0) {
+        document.documentElement.scrollTop = 0;
+      }
+
       // Set CSS variables on root document
       document.documentElement.style.setProperty('--visual-viewport-height', `${vHeight}px`);
       document.documentElement.style.setProperty('--keyboard-height', `${kbHeight}px`);
+      document.documentElement.style.setProperty('--visual-viewport-offset-top', `${vv.offsetTop || 0}px`);
     };
 
     vv.addEventListener('resize', handleVvChange);
