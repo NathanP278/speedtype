@@ -5,7 +5,8 @@ import { purgeLocalDataAndCookies } from '../utils/storagePurge.ts';
 import { AVATAR_OPTIONS } from '../profile/profile.ts';
 
 const OAUTH_CHANNEL_NAME = 'speedtype_auth_channel';
-const OAUTH_STORAGE_KEY = 'speedtype_oauth_session_bridge';
+const OAUTH_CODE_KEY = 'speedtype_oauth_code_bridge';
+const OAUTH_SESSION_KEY = 'speedtype_oauth_session_bridge';
 
 export function useAuth() {
   const [user, setUser] = useState<UserAccount | null>(null);
@@ -74,28 +75,47 @@ export function useAuth() {
     }
   }, []);
 
-  // Helper to safely apply session tokens into client
-  const applySessionTokens = useCallback(
+  // Exchange PKCE authorization code in the parent window holding the code_verifier
+  const handleOAuthCode = useCallback(
+    async (authCode: string) => {
+      if (!isMountedRef.current || !isSupabaseConfigured || !supabase) return;
+      setIsLoading(true);
+      setError(null);
+      try {
+        const { data, error: exErr } = await supabase.auth.exchangeCodeForSession(authCode);
+        if (exErr) {
+          console.error('[useAuth] exchangeCodeForSession failed:', exErr.message);
+          setError(exErr.message);
+          return;
+        }
+        if (data?.session?.user) {
+          await fetchAndSetProfile(data.session.user.id, data.session.user);
+        }
+      } catch (err: any) {
+        console.error('[useAuth] Error exchanging code for session:', err);
+        setError(err?.message || 'Authentication code exchange failed');
+      } finally {
+        if (isMountedRef.current) setIsLoading(false);
+      }
+    },
+    [fetchAndSetProfile]
+  );
+
+  // Apply already-obtained session tokens (e.g. implicit flow)
+  const handleOAuthSession = useCallback(
     async (tokens: { access_token: string; refresh_token: string }) => {
       if (!isMountedRef.current || !isSupabaseConfigured || !supabase) return;
       setIsLoading(true);
+      setError(null);
       try {
-        const { data, error: setErr } = await supabase.auth.setSession({
-          access_token: tokens.access_token,
-          refresh_token: tokens.refresh_token,
-        });
-
+        const { data, error: setErr } = await supabase.auth.setSession(tokens);
         if (!setErr && data?.session?.user) {
           await fetchAndSetProfile(data.session.user.id, data.session.user);
-        } else {
-          // Fallback to getSession
-          const { data: sData } = await supabase.auth.getSession();
-          if (sData?.session?.user) {
-            await fetchAndSetProfile(sData.session.user.id, sData.session.user);
-          }
+        } else if (setErr) {
+          console.error('[useAuth] setSession error:', setErr.message);
         }
-      } catch (err) {
-        console.error('[useAuth] Failed to apply session tokens:', err);
+      } catch (err: any) {
+        console.error('[useAuth] Error applying session tokens:', err);
       } finally {
         if (isMountedRef.current) setIsLoading(false);
       }
@@ -121,18 +141,18 @@ export function useAuth() {
           if (isMountedRef.current) setIsLoading(false);
         });
       } else {
-        // If code or token is in URL (redirect flow), let detectSessionInUrl / onAuthStateChange process it
+        // Direct redirect callback
         if (window.location.search.includes('code=') || window.location.hash.includes('access_token=')) {
           return;
         }
-        // Check for pending storage bridge
-        const bridgeStr = localStorage.getItem(OAUTH_STORAGE_KEY);
-        if (bridgeStr) {
+        // Pending code bridge
+        const codeBridgeStr = localStorage.getItem(OAUTH_CODE_KEY);
+        if (codeBridgeStr) {
           try {
-            const bridge = JSON.parse(bridgeStr);
-            localStorage.removeItem(OAUTH_STORAGE_KEY);
-            if (bridge?.access_token && bridge?.refresh_token && Date.now() - (bridge.timestamp || 0) < 60000) {
-              applySessionTokens(bridge);
+            const parsed = JSON.parse(codeBridgeStr);
+            localStorage.removeItem(OAUTH_CODE_KEY);
+            if (parsed?.code && Date.now() - (parsed.timestamp || 0) < 60000) {
+              handleOAuthCode(parsed.code);
               return;
             }
           } catch {}
@@ -148,15 +168,10 @@ export function useAuth() {
       try {
         authChannel = new BroadcastChannel(OAUTH_CHANNEL_NAME);
         authChannel.onmessage = async (event: MessageEvent) => {
-          if (event.data?.type === 'SPEEDTYPE_OAUTH_SUCCESS') {
-            if (event.data?.session?.access_token) {
-              await applySessionTokens(event.data.session);
-            } else {
-              const { data: { session } } = await supabase.auth.getSession();
-              if (session?.user) {
-                await fetchAndSetProfile(session.user.id, session.user);
-              }
-            }
+          if (event.data?.type === 'SPEEDTYPE_OAUTH_CODE' && event.data?.code) {
+            await handleOAuthCode(event.data.code);
+          } else if (event.data?.type === 'SPEEDTYPE_OAUTH_SESSION' && event.data?.session) {
+            await handleOAuthSession(event.data.session);
           }
         };
       } catch (e) {
@@ -167,33 +182,37 @@ export function useAuth() {
     // 3. postMessage listener (fallback for window.opener)
     const handleWindowMessage = async (event: MessageEvent) => {
       if (event.origin !== window.location.origin) return;
-      if (event.data?.type === 'SPEEDTYPE_OAUTH_SUCCESS') {
+      if (event.data?.type === 'SPEEDTYPE_OAUTH_CODE' && event.data?.code) {
         if (!isMountedRef.current) return;
-        if (event.data?.session?.access_token) {
-          await applySessionTokens(event.data.session);
-        } else {
-          setIsLoading(true);
-          const { data: { session } } = await supabase.auth.getSession();
-          if (session?.user) {
-            await fetchAndSetProfile(session.user.id, session.user);
-          }
-          setIsLoading(false);
-        }
+        await handleOAuthCode(event.data.code);
+      } else if (event.data?.type === 'SPEEDTYPE_OAUTH_SESSION' && event.data?.session) {
+        if (!isMountedRef.current) return;
+        await handleOAuthSession(event.data.session);
       }
     };
     window.addEventListener('message', handleWindowMessage);
 
     // 4. storage event listener (cross-tab fallback)
     const handleStorageChange = async (event: StorageEvent) => {
-      if (event.key === OAUTH_STORAGE_KEY && event.newValue) {
+      if (event.key === OAUTH_CODE_KEY && event.newValue) {
         try {
           const parsed = JSON.parse(event.newValue);
-          localStorage.removeItem(OAUTH_STORAGE_KEY);
-          if (parsed?.access_token && parsed?.refresh_token) {
-            await applySessionTokens(parsed);
+          localStorage.removeItem(OAUTH_CODE_KEY);
+          if (parsed?.code) {
+            await handleOAuthCode(parsed.code);
           }
         } catch (e) {
-          console.warn('[useAuth] Storage change parse error:', e);
+          console.warn('[useAuth] Storage code bridge parse error:', e);
+        }
+      } else if (event.key === OAUTH_SESSION_KEY && event.newValue) {
+        try {
+          const parsed = JSON.parse(event.newValue);
+          localStorage.removeItem(OAUTH_SESSION_KEY);
+          if (parsed?.access_token && parsed?.refresh_token) {
+            await handleOAuthSession(parsed);
+          }
+        } catch (e) {
+          console.warn('[useAuth] Storage session bridge parse error:', e);
         }
       }
     };
@@ -223,7 +242,7 @@ export function useAuth() {
       authChannel?.close();
       subscription.unsubscribe();
     };
-  }, [fetchAndSetProfile, applySessionTokens]);
+  }, [fetchAndSetProfile, handleOAuthCode, handleOAuthSession]);
 
   // Exclusive Google OAuth Sign-In with Dedicated Popup & Account Selection
   const signInWithGoogle = useCallback(async (): Promise<{ success: boolean; error?: string }> => {
@@ -272,7 +291,7 @@ export function useAuth() {
       );
 
       if (!popup || popup.closed || typeof popup.closed === 'undefined') {
-        // Fallback to direct redirect if browser blocks popups
+        // Direct redirect fallback if browser blocks popups
         console.warn('[useAuth] Popup blocked by browser. Falling back to direct redirect.');
         window.location.assign(data.url);
         return { success: true };
@@ -284,14 +303,26 @@ export function useAuth() {
       const timer = setInterval(async () => {
         if (!popup || popup.closed) {
           clearInterval(timer);
-          // Check storage bridge first
-          const bridgeStr = localStorage.getItem(OAUTH_STORAGE_KEY);
-          if (bridgeStr) {
+          // Check code bridge
+          const codeStr = localStorage.getItem(OAUTH_CODE_KEY);
+          if (codeStr) {
             try {
-              const bridge = JSON.parse(bridgeStr);
-              localStorage.removeItem(OAUTH_STORAGE_KEY);
-              if (bridge?.access_token && bridge?.refresh_token) {
-                await applySessionTokens(bridge);
+              const parsed = JSON.parse(codeStr);
+              localStorage.removeItem(OAUTH_CODE_KEY);
+              if (parsed?.code) {
+                await handleOAuthCode(parsed.code);
+                return;
+              }
+            } catch {}
+          }
+          // Check session bridge
+          const sessionStr = localStorage.getItem(OAUTH_SESSION_KEY);
+          if (sessionStr) {
+            try {
+              const parsed = JSON.parse(sessionStr);
+              localStorage.removeItem(OAUTH_SESSION_KEY);
+              if (parsed?.access_token && parsed?.refresh_token) {
+                await handleOAuthSession(parsed);
                 return;
               }
             } catch {}
@@ -302,7 +333,7 @@ export function useAuth() {
             await fetchAndSetProfile(session.user.id, session.user);
           }
         }
-      }, 500);
+      }, 400);
 
       return { success: true };
     } catch (err: any) {
@@ -310,7 +341,7 @@ export function useAuth() {
       setError(msg);
       return { success: false, error: msg };
     }
-  }, [fetchAndSetProfile, applySessionTokens]);
+  }, [fetchAndSetProfile, handleOAuthCode, handleOAuthSession]);
 
   // Update profile from onboarding wizard or profile settings
   const updateProfile = useCallback(async (updates: {
@@ -391,7 +422,8 @@ export function useAuth() {
       }
     }
 
-    localStorage.removeItem(OAUTH_STORAGE_KEY);
+    localStorage.removeItem(OAUTH_CODE_KEY);
+    localStorage.removeItem(OAUTH_SESSION_KEY);
     purgeLocalDataAndCookies();
     setIsLoading(false);
     window.location.reload();

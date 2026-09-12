@@ -14,6 +14,11 @@ export const isSupabaseConfigured = Boolean(
 const fallbackUrl = 'https://placeholder.supabase.co';
 const fallbackKey = 'placeholder-key';
 
+const isOAuthPopup =
+  typeof window !== 'undefined' &&
+  (window.name === 'speedtype_google_oauth' ||
+    (Boolean(window.opener) && window.name === 'speedtype_google_oauth'));
+
 export const supabase: SupabaseClient = createClient(
   isSupabaseConfigured ? supabaseUrl! : fallbackUrl,
   isSupabaseConfigured ? supabaseAnonKey! : fallbackKey,
@@ -21,7 +26,9 @@ export const supabase: SupabaseClient = createClient(
     auth: {
       persistSession: true,
       autoRefreshToken: true,
-      detectSessionInUrl: true,
+      // In OAuth popup window, do NOT consume PKCE authorization code;
+      // the parent window that generated the code_verifier must exchange it.
+      detectSessionInUrl: !isOAuthPopup,
     },
   }
 );
